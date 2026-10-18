@@ -8,12 +8,15 @@
     <AppRoot>\secrets\plex.token so it never appears on a command line, keeps
     the volume state file under <AppRoot>\data, and appends output to
     <AppRoot>\logs\plex.log. The port is reached through Cloudflare and
-    Tailscale only; the Windows firewall blocks it on the LAN.
+    Tailscale only (public port 8793, internal port 18793); the Windows
+    firewall blocks the internal port on the LAN.
 #>
 [CmdletBinding()]
 param(
     [string]$AppRoot = 'C:\ProgramData\SolutionDeploy\apps\plex',
-    [int]$Port = 8793,
+    # Tailscale serve owns the tailnet address on 8793, and HttpListener's + prefix binds every address,
+    # so the listener uses an internal port that Tailscale serve and cloudflared forward to.
+    [int]$Port = 18793,
     [string]$Player = 'Office',
     [string]$PlexServer = 'jimbrownhome:32400'
 )

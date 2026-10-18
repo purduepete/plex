@@ -5,7 +5,7 @@ skipping the current track, a command-line track controller, and a now-playing t
 
 ## Hosted web UI
 
-The web UI runs on `jimbrownhome1` as the `\JimlerTech\plex` scheduled task, under
+The web UI runs on `jimbrownhome1` as the `\JimlerTech\SolutionDeploy-plex` scheduled task, under
 `NT AUTHORITY\LOCAL SERVICE`. It starts at boot, and a 5-minute trigger restarts it if it stops.
 
 | Access | URL |
@@ -13,7 +13,7 @@ The web UI runs on `jimbrownhome1` as the `\JimlerTech\plex` scheduled task, und
 | Cloudflare Access | https://plex.jimlertech.com |
 | Tailscale | https://jimbrownhome1.tail8ad282.ts.net:8793 |
 
-The LAN port `8793` is blocked by the Windows firewall. Only `cloudflared` and Tailscale serve
+The listener uses internal port `18793`, because Tailscale serve owns `8793` on the tailnet address. The LAN port `18793` is blocked by the Windows firewall. Only `cloudflared` and Tailscale serve
 reach it, both through `127.0.0.1`.
 
 Host layout under `C:\ProgramData\SolutionDeploy\apps\plex`:
@@ -26,15 +26,15 @@ Host layout under `C:\ProgramData\SolutionDeploy\apps\plex`:
 | `logs\plex.log` | Output, rotated at 5 MB | Modify |
 
 [deploy/Start-PlexHost.ps1](deploy/Start-PlexHost.ps1) is the task's entry point. It reads the
-token file and starts `Start-PlexWebUI.ps1` on port 8793 with `-Public`. The URL reservation
-`http://+:8793/` is granted to LOCAL SERVICE.
+token file and starts `Start-PlexWebUI.ps1` on port 18793 with `-Public`. The URL reservation
+`http://+:18793/` is granted to LOCAL SERVICE.
 
 To deploy a change, copy the repo into `current` and restart the task:
 
 ```powershell
 Copy-Item .\* \\jimbrownhome1\c$\ProgramData\SolutionDeploy\apps\plex\current -Recurse -Force
 # then on jimbrownhome1, elevated:
-Stop-ScheduledTask -TaskPath \JimlerTech\ -TaskName plex; Start-ScheduledTask -TaskPath \JimlerTech\ -TaskName plex
+Stop-ScheduledTask -TaskPath \JimlerTech\ -TaskName SolutionDeploy-plex; Start-ScheduledTask -TaskPath \JimlerTech\ -TaskName SolutionDeploy-plex
 ```
 
 ## Scripts

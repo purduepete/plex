@@ -1,0 +1,5 @@
+*.log
+*.pid
+*.token
+.env*
+PlexWebUI.VolumeState.json

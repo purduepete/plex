@@ -46,8 +46,18 @@ Stop-ScheduledTask -TaskPath \JimlerTech\ -TaskName SolutionDeploy-plex; Start-S
 | `Set-PlexTrack.ps1` | Rate, skip, or go back from the command line |
 | `Watch-PlexNowPlaying.ps1` | Windows toast on track change (Windows PowerShell 5.1) |
 | `PlexNotifyWatcher-ProfileSnippet.ps1` | Profile functions for the watcher |
+| `Set-PlexToken.ps1` | Store a new token locally and, with `-UpdateHost`, on jimbrownhome1 |
 | `desktop\` | The earlier per-user logon launcher, kept as a reference for hidden logon tasks |
 | `Plex-API-Reference.md` | Notes on the Plex HTTP API |
 
-Every script takes `-Token`. Keep the token in the `PLEX_TOKEN` user environment variable; it is
-never committed.
+Every script takes `-Token`. The pwsh profile loads it into `PLEX_TOKEN` from the per-user DPAPI
+file `%LOCALAPPDATA%\JimlerTech\plex-token.dpapi.xml`; it is never committed.
+
+## Rotating the token
+
+The token was once committed to the `powershell` and `config` repos, so treat it as exposed.
+
+1. At plex.tv, open Account > Authorized Devices and remove old sessions, or change the password
+   with "sign out of all devices". Sign back in and copy the new `X-Plex-Token`.
+2. In a terminal outside VS Code chat, run `.\Set-PlexToken.ps1 -UpdateHost`.
+3. On each other machine that uses the profile, run `.\Set-PlexToken.ps1`.

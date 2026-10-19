@@ -3,7 +3,8 @@
 
 function Start-PlexNotifyWatcher {
     param(
-        [string]$Client = 'IPhone'
+        [string]$Client = 'IPhone',
+        [string]$PlexServer = '192.168.2.11:32400'
     )
 
     $pidFile = "$env:TEMP\PlexNotifyWatcher.pid"
@@ -15,9 +16,15 @@ function Start-PlexNotifyWatcher {
         }
     }
 
-    $scriptPath = "C:\Files\Dev\main\powershell\prod\plex\Watch-PlexNowPlaying.ps1"
+    $scriptPath = "C:\Files\Dev\main\plex\Watch-PlexNowPlaying.ps1"
     $logOut = "$env:TEMP\PlexNotifyWatcher.out.log"
     $logErr = "$env:TEMP\PlexNotifyWatcher.err.log"
+    if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
+        throw "Plex watcher script not found: $scriptPath"
+    }
+    if ([string]::IsNullOrWhiteSpace($env:PLEX_TOKEN)) {
+        throw "Plex token is missing. Run C:\Files\Dev\main\plex\Set-PlexToken.ps1, then reload your profile."
+    }
 
     # Uses Windows PowerShell 5.1 (powershell.exe), not pwsh.exe - BurntToast
     # toasts from a background process only showed up reliably under 5.1 in
@@ -26,9 +33,14 @@ function Start-PlexNotifyWatcher {
     $proc = Start-Process powershell.exe -ArgumentList @(
         "-NoProfile", "-WindowStyle", "Hidden", "-File", "`"$scriptPath`"",
         "-Token", "`"$env:PLEX_TOKEN`"",
-        "-Player", "`"$Client`""
+        "-Player", "`"$Client`"",
+        "-PlexServer", "`"$PlexServer`""
     ) -WindowStyle Hidden -RedirectStandardOutput $logOut -RedirectStandardError $logErr -PassThru
 
+    if ($proc.WaitForExit(1500)) {
+        Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
+        throw "Plex notify watcher exited during startup (exit code $($proc.ExitCode)). Check $logErr and $logOut."
+    }
     $proc.Id | Out-File $pidFile
     Write-Host "Plex notify watcher started for '$Client' (PID $($proc.Id))." -ForegroundColor Green
 }

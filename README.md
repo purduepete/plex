@@ -53,6 +53,22 @@ Stop-ScheduledTask -TaskPath \JimlerTech\ -TaskName SolutionDeploy-plex; Start-S
 Every script takes `-Token`. The pwsh profile loads it into `PLEX_TOKEN` from the per-user DPAPI
 file `%LOCALAPPDATA%\JimlerTech\plex-token.dpapi.xml`; it is never committed.
 
+## Desktop notifications
+
+Reload the profile in any terminals opened before the scripts moved into this repo:
+
+```powershell
+. $PROFILE
+Start-PlexNotifyWatcher -Client IPhone
+```
+
+The profile launcher uses the Plex server's LAN address, `192.168.2.11:32400`, so
+notifications work on the home network without Tailscale. Override it with
+`-PlexServer 'hostname:32400'` when needed. The launcher checks for the script and
+token, and reports an error if the watcher exits during startup. Startup output is
+in `%TEMP%\PlexNotifyWatcher.out.log` and `%TEMP%\PlexNotifyWatcher.err.log`;
+polling and toast results are in `%TEMP%\PlexNotifyWatcher.activity.log`.
+
 ## Rotating the token
 
 The token was once committed to the `powershell` and `config` repos, so treat it as exposed.

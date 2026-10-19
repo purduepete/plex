@@ -211,6 +211,9 @@ function Write-JsonResponse {
 $appleTouchIconBase64 = 'iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAEF0lEQVR4nO3bwXHbMBRFUTqTtRvwTJbqyRWmp5SRCrKAh1EUPQokQeA//HsaMAhcfdCK8/bx47YAz3wbvQDERRyQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScfzj18/fo5cQCHFAIo6/ythgeKyIAxJxfGFg/I84niCUgjggEceyPBsVDI+FOLCBOBgSEnFIREMckLLHwXjYkD2ObcnTIQ5IqeNIPhheSh1HjcwB5Y0j86lXyhtHvbQZEQekpHGkHQa7JI1jr5wxZYwj50kfkDEOVCKOWgnnTbo4Ep7xYeniOCNbWLniyHa6J+WKA7sQxz6pZk+iOFKdaxOJ4sBexLFbngmUJY48J9pQljhwQIo4mo+NJHMoRRw4hjgOyjA85o8jwyleZP44cNjkcVw6NqafSZPHgTPePn7cRq9hy9yfztvn++glbLk2jrmPNoJL87r2Wgn+yXB39fZ2ulYYIW31+dR1eiFlhDTUbTP7/bZCH0303MYBv61wxRzT/9M14HsORsgBQzZtzJdg9LHLqO0a9g0pfVQauFHjvyHlFUQZ/vkZ/28rw7cgpgjbMj6OJcZGhBJkQ8ZfK/e4YoJkUYSYHKtQW9NftMePFccSb4O6Cfjgsa6Ve3mumIBZFOEmxyrslrUV+THjxrHE3rgmgj9g3Gvl3nxXTPAsitCTY2WxlfVcHscjjsVnQ18yehCbOBarbVW8HsHjneOB4yuIVxaF0+RY2W203YILyzgWq+02WuoDy2vlXuQrxjeLwnVyrMIeQNiF1bOPA9exjyPstRJ2YfXs48B1iAMScUDyjiP4vR58eS95x4FLEQck4oBkHIfFjW6xSMU4DlyNOCARByTXOIzucqOlPnCNAx0QByTigGQZh90tbrfgwjKOi9w+3yf4276GiOPLmgWJrIjjeQ30sTj+14S29/fLCBr+OLvg8k6OyuvD7kQbShrHriNP+xZidq2cH/JnjnnsT+8v1+Q4eTbZRkiWOBqea54+UsTR/DiTjBCnd44DV/7VRxhwSQ3NPDk6HMPcI2TOODqf2ax9TBjHkKOasg+bd46a2z3CCbmss8Y8kyPIjgdZRhPfRy+ggWjnUdZj+gc+9+wnR7QyVmEXVs/jnePpp9Bl930X7zo5LDa3MFrqA793Dse9Nn0LMZscjmWs7BZv8M5RPnB2O7vB5Yk8Jkf8fdzF5XEMJgdG8ZgcGII4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUD6A/2w4mpSMEc+AAAAAElFTkSuQmCC'
 $appleTouchIconBytes = [Convert]::FromBase64String($appleTouchIconBase64)
 
+# Browser tab and Site Dock sidebar icon: the same gold star as an SVG.
+$faviconSvgBytes = [System.Text.Encoding]::UTF8.GetBytes('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#1b1e26"/><path fill="#f5c518" d="M16 4.5l3.4 7.6 8.2.8-6.2 5.5 1.8 8.1L16 22.3l-7.2 4.2 1.8-8.1-6.2-5.5 8.2-.8z"/></svg>')
+
 $htmlPage = @'
 <!DOCTYPE html>
 <html lang="en">
@@ -222,8 +225,8 @@ $htmlPage = @'
 <meta name="apple-mobile-web-app-title" content="Plex Track">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#111318">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <title>Plex Track Control</title>
 <style>
   :root {
@@ -1131,6 +1134,12 @@ try {
                     $response.ContentType = "image/png"
                     $response.ContentLength64 = $appleTouchIconBytes.Length
                     $response.OutputStream.Write($appleTouchIconBytes, 0, $appleTouchIconBytes.Length)
+                }
+
+                '/favicon.svg' {
+                    $response.ContentType = "image/svg+xml"
+                    $response.ContentLength64 = $faviconSvgBytes.Length
+                    $response.OutputStream.Write($faviconSvgBytes, 0, $faviconSvgBytes.Length)
                 }
 
                 '/api/art' {

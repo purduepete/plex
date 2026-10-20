@@ -7,6 +7,16 @@ const source = readFileSync(new URL('./Start-PlexWebUI.ps1', import.meta.url), '
 const html = source.match(/\$htmlPage = @'\r?\n([\s\S]*?)\r?\n'@/)[1];
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
+test('theme and refresh share a compact, vertically centered header', () => {
+    const header = html.slice(html.indexOf('<div class="theme-setting">'), html.indexOf('<div class="art-wrap">'));
+    assert(header.includes('id="themePicker"'));
+    assert(header.includes('id="reloadBtn"'));
+    assert(header.includes('id="themeLabel" hidden'));
+    assert.match(html, /\.theme-setting \{[^}]*align-items:center; justify-content:space-between;/);
+    assert.match(html, /\.theme-trigger \{[^}]*height:32px;[^}]*background:transparent;/);
+    assert.doesNotMatch(html, /\.reload-btn \{[^}]*position:absolute/);
+});
+
 function launch(stored, dark = false, blocked = false) {
     let osChanged, ready;
     const storage = new Map(stored === undefined ? [] : [['plex-theme', stored]]);

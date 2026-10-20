@@ -348,9 +348,10 @@ $htmlPage = @'
     transition:background-color .3s;
   }
   button,input,select,textarea { font-family:inherit; border-radius:0; }
-  .theme-setting { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin:0 0 16px; font-size:13px; color:var(--muted); }
+  .theme-setting { display:flex; align-items:center; justify-content:space-between; margin:0 0 16px; font-size:13px; color:var(--muted); }
   .theme-picker { position:relative; }
-  .theme-trigger { display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:116px; padding:8px 10px; background:var(--btn); color:var(--text); border:1px solid var(--track); cursor:pointer; font:inherit; }
+  .theme-trigger { display:flex; align-items:center; justify-content:space-between; gap:8px; height:32px; padding:6px 8px; background:transparent; color:var(--muted); border:0; cursor:pointer; font:inherit; }
+  .theme-trigger:hover,.theme-trigger[aria-expanded=true] { background:var(--btn); color:var(--text); }
   .theme-trigger svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; }
   .theme-menu { position:absolute; right:0; top:calc(100% + 4px); z-index:30; min-width:100%; max-width:calc(100vw - 40px); max-height:min(240px,40dvh); overflow:auto; padding:4px; background:var(--panel); border:1px solid var(--track); box-shadow:0 8px 24px rgba(0,0,0,.3); scrollbar-width:thin; scrollbar-color:var(--muted) var(--panel); }
   .theme-menu[hidden] { display:none; }
@@ -361,12 +362,12 @@ $htmlPage = @'
   :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .card {
     position:relative;
-    background:var(--panel); border-radius:0; padding:36px 30px;
+    background:var(--panel); border-radius:0; padding:14px 30px 36px;
     width:100%; max-width:440px; box-shadow:0 20px 60px rgba(0,0,0,.4);
     text-align:center;
   }
   .reload-btn {
-    position:absolute; top:14px; left:14px; width:32px; height:32px;
+    width:32px; height:32px; order:-1;
     border:none; background:transparent; color:var(--muted); cursor:pointer;
     padding:6px; border-radius:0; display:flex; align-items:center;
     justify-content:center; transition:background .15s, color .15s;
@@ -458,7 +459,7 @@ $htmlPage = @'
   button.nav-icon svg { width:26px; height:26px; }
 
   @media (max-width: 420px) {
-    .card { padding:28px 16px; }
+    .card { padding:14px 16px 28px; }
     .stars { gap:10px; font-size:38px; }
     .controls { gap:8px; }
     button.nav { padding:14px 10px; gap:6px; }
@@ -586,7 +587,7 @@ $htmlPage = @'
   </div>
 
   <div class="card">
-    <div class="theme-setting"><span id="themeLabel">Theme</span>
+    <div class="theme-setting"><span id="themeLabel" hidden>Theme</span>
       <div class="theme-picker" id="themePicker">
         <button type="button" id="theme" class="theme-trigger" aria-labelledby="themeLabel themeValue" aria-haspopup="menu" aria-expanded="false" aria-controls="themeMenu">
           <span id="themeValue">Midnight</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
@@ -597,10 +598,10 @@ $htmlPage = @'
           <button type="button" role="menuitemradio" aria-checked="true" tabindex="-1" data-theme-preference="midnight">Midnight</button>
         </div>
       </div>
-    </div>
     <button type="button" class="reload-btn" id="reloadBtn" aria-label="Refresh" title="Refresh">
       <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
     </button>
+    </div>
     <div class="art-wrap">
       <img id="albumArt" src="" alt="">
     </div>

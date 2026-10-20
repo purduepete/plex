@@ -220,17 +220,58 @@ $htmlPage = @'
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Plex Track">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#111318">
+<meta name="theme-color" content="#020617">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <title>Plex Track Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&amp;display=swap">
+<script>
+(function () {
+  var media = matchMedia('(prefers-color-scheme: dark)');
+  var preference = 'midnight';
+  try {
+    var stored = localStorage.getItem('plex-theme');
+    if (['system', 'light', 'midnight'].indexOf(stored) !== -1) preference = stored;
+  } catch (e) {}
+  function apply() {
+    var theme = preference === 'system' ? (media.matches ? 'midnight' : 'light') : preference;
+    var root = document.documentElement;
+    root.dataset.theme = theme;
+    root.classList.toggle('light', theme === 'light');
+    root.classList.toggle('dark', theme !== 'light');
+    root.classList.toggle('theme-midnight', theme === 'midnight');
+    root.style.colorScheme = theme === 'light' ? 'light' : 'dark';
+    root.style.backgroundColor = theme === 'light' ? '#ffffff' : '#020617';
+    document.querySelector('meta[name="theme-color"]').content = theme === 'light' ? '#ffffff' : '#020617';
+  }
+  apply();
+  media.addEventListener('change', function () { if (preference === 'system') apply(); });
+  document.addEventListener('DOMContentLoaded', function () {
+    var control = document.getElementById('theme');
+    control.value = preference;
+    control.addEventListener('change', function () {
+      preference = control.value;
+      try { localStorage.setItem('plex-theme', preference); } catch (e) {}
+      apply();
+    });
+  });
+})();
+</script>
 <style>
   :root {
-    --bg:#111318; --panel:#1b1e26; --text:#e8e8ea; --muted:#9aa0a6;
-    --accent:#f5c518; --danger:#e05252; --btn:#2a2e38; --btn-hover:#343945;
+    color-scheme:dark;
+    --bg:#020617; --panel:#0f172a; --text:#e8e8ea; --muted:#9aa0a6;
+    --accent:#f5c518; --danger:#e05252; --btn:#1e293b; --btn-hover:#334155;
+    --track:#334155; --star:#64748b;
+  }
+  :root[data-theme=light] {
+    color-scheme:light;
+    --bg:#ffffff; --panel:#f1f5f9; --text:#0f172a; --muted:#475569;
+    --danger:#b91c1c; --btn:#e2e8f0; --btn-hover:#cbd5e1; --track:#cbd5e1; --star:#64748b;
   }
   * {
     box-sizing:border-box; -webkit-tap-highlight-color:transparent;
@@ -240,21 +281,29 @@ $htmlPage = @'
     height:100%; margin:0; overflow:hidden; overscroll-behavior:none;
   }
   body {
-    font-family:-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-family:'Roboto Flex',ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,'Noto Sans',sans-serif;
+    font-weight:400; -webkit-font-smoothing:antialiased;
     background:var(--bg); color:var(--text);
     display:flex; align-items:center; justify-content:center;
-    height:100vh; height:100dvh; padding:20px;
+    height:100vh; height:100dvh;
+    position:fixed; inset:0; overflow:auto;
+    padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
+    transition:background-color .3s;
   }
+  button,input,select,textarea { font-family:inherit; border-radius:0; }
+  .theme-setting { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin:0 0 16px; font-size:13px; color:var(--muted); }
+  .theme-setting select { padding:6px; background:var(--btn); color:var(--text); border:1px solid var(--track); }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .card {
     position:relative;
-    background:var(--panel); border-radius:20px; padding:36px 30px;
+    background:var(--panel); border-radius:0; padding:36px 30px;
     width:100%; max-width:440px; box-shadow:0 20px 60px rgba(0,0,0,.4);
     text-align:center;
   }
   .reload-btn {
     position:absolute; top:14px; left:14px; width:32px; height:32px;
     border:none; background:transparent; color:var(--muted); cursor:pointer;
-    padding:6px; border-radius:8px; display:flex; align-items:center;
+    padding:6px; border-radius:0; display:flex; align-items:center;
     justify-content:center; transition:background .15s, color .15s;
     touch-action:manipulation;
   }
@@ -267,8 +316,8 @@ $htmlPage = @'
     to { transform:rotate(360deg); }
   }
   .art-wrap {
-    width:140px; height:140px; margin:0 auto 18px; border-radius:16px;
-    overflow:hidden; background:#2a2e38; box-shadow:0 10px 24px rgba(0,0,0,.35);
+    width:140px; height:140px; margin:0 auto 18px; border-radius:0;
+    overflow:hidden; background:var(--btn); box-shadow:0 10px 24px rgba(0,0,0,.35);
   }
   .art-wrap img {
     width:100%; height:100%; object-fit:cover; display:none;
@@ -279,7 +328,7 @@ $htmlPage = @'
     display:inline-flex; align-items:center; gap:6px;
     background:transparent; border:none; color:var(--muted);
     font-size:13px; letter-spacing:.08em; text-transform:uppercase;
-    padding:8px 12px; border-radius:10px; cursor:pointer;
+    padding:8px 12px; border-radius:0; cursor:pointer;
     font-family:inherit; transition:background .15s, color .15s;
     max-width:280px;
   }
@@ -293,7 +342,7 @@ $htmlPage = @'
   .device-picker-btn.open .chevron { transform:rotate(180deg); }
   .device-menu {
     position:absolute; top:calc(100% + 6px); left:50%; transform:translateX(-50%) translateY(-6px);
-    background:#20242e; border-radius:14px; box-shadow:0 16px 36px rgba(0,0,0,.5);
+    background:var(--panel); border-radius:0; box-shadow:0 16px 36px rgba(0,0,0,.5);
     min-width:200px; max-width:280px; max-height:260px; overflow-y:auto; z-index:20;
     padding:6px; text-align:left; opacity:0; pointer-events:none;
     transition:opacity .15s ease, transform .15s ease;
@@ -302,7 +351,7 @@ $htmlPage = @'
     opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0);
   }
   .device-option {
-    padding:11px 14px; border-radius:9px; cursor:pointer; font-size:14px;
+    padding:11px 14px; border-radius:0; cursor:pointer; font-size:14px;
     color:var(--text); text-transform:none; letter-spacing:normal;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     transition:background .1s;
@@ -316,14 +365,14 @@ $htmlPage = @'
     height:56px; margin:0 auto 28px; font-size:44px; line-height:1; user-select:none;
   }
   .stars .star {
-    color:#3a3d45; cursor:pointer; transition:color .1s ease;
+    color:var(--star); cursor:pointer; transition:color .1s ease;
     padding:14px 8px; margin:-14px -8px; /* enlarges tap target without shifting layout */
   }
   .stars .star.filled { color:var(--accent); }
   .controls { display:flex; gap:10px; justify-content:center; flex-wrap:nowrap; }
   button.nav {
     display:inline-flex; align-items:center; justify-content:center; gap:8px;
-    background:var(--btn); color:var(--text); border:none; border-radius:14px;
+    background:var(--btn); color:var(--text); border:none; border-radius:0;
     padding:16px 14px; font-size:clamp(13px, 4vw, 17px); cursor:pointer;
     transition:background .15s; min-height:56px; touch-action:manipulation;
     flex:1 1 0; min-width:0; white-space:nowrap; overflow:hidden;
@@ -364,7 +413,7 @@ $htmlPage = @'
   }
   .progress-track::before {
     content:''; position:absolute; left:0; right:0; top:50%;
-    transform:translateY(-50%); height:6px; border-radius:6px; background:#2f333e;
+    transform:translateY(-50%); height:6px; border-radius:6px; background:var(--track);
   }
   .progress-fill {
     position:absolute; top:50%; left:0; transform:translateY(-50%);
@@ -401,7 +450,7 @@ $htmlPage = @'
   .vol-btn {
     /* 44px matches Apple's minimum recommended touch target - the old 32px
        was too small to hit reliably on iPad/iPhone. */
-    flex:none; width:44px; height:44px; border:none; border-radius:10px;
+    flex:none; width:44px; height:44px; border:none; border-radius:0;
     background:var(--btn); color:var(--text);
     cursor:pointer; display:flex; align-items:center; justify-content:center;
     touch-action:manipulation; transition:background .15s;
@@ -421,10 +470,10 @@ $htmlPage = @'
     height:36px; margin:-15px 0; background:transparent; outline:none; cursor:pointer;
   }
   #volumeSlider::-webkit-slider-runnable-track {
-    height:6px; border-radius:6px; background:#2f333e;
+    height:6px; border-radius:6px; background:var(--track);
   }
   #volumeSlider::-moz-range-track {
-    height:6px; border-radius:6px; background:#2f333e;
+    height:6px; border-radius:6px; background:var(--track);
   }
   #volumeSlider::-webkit-slider-thumb {
     -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
@@ -445,18 +494,20 @@ $htmlPage = @'
   }
   .lock-overlay.hidden { display:none; }
   .lock-box {
-    background:var(--panel); border-radius:20px; padding:32px 28px;
+    background:var(--panel); border-radius:0; padding:32px 28px;
     width:260px; max-width:88vw; text-align:center;
     box-shadow:0 20px 60px rgba(0,0,0,.4);
   }
   .lock-title { font-size:16px; margin-bottom:16px; color:var(--text); }
   #pinInput {
     width:100%; font-size:24px; text-align:center; letter-spacing:10px;
-    padding:12px; border-radius:10px; border:none; background:#2a2e38;
+    padding:12px; border-radius:0; border:none; background:var(--btn);
     color:var(--text); margin-bottom:14px; font-family:inherit;
   }
   #pinInput:focus { outline:2px solid var(--accent); }
   .lock-error { color:var(--danger); font-size:13px; min-height:18px; margin-top:10px; }
+  @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
+  @media(max-height:760px) { body { align-items:flex-start; } }
 </style>
 </head>
 <body>
@@ -470,6 +521,9 @@ $htmlPage = @'
   </div>
 
   <div class="card">
+    <label class="theme-setting" for="theme">Theme
+      <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="midnight">Midnight</option></select>
+    </label>
     <button type="button" class="reload-btn" id="reloadBtn" aria-label="Refresh" title="Refresh">
       <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
     </button>
@@ -1030,7 +1084,7 @@ $htmlPage = @'
   document.addEventListener('keydown', function (e) {
     var target = e.target;
     var tag = (target && target.tagName) || '';
-    var isTextEntry = (tag === 'INPUT' && target.type !== 'range') || tag === 'TEXTAREA';
+    var isTextEntry = (tag === 'INPUT' && target.type !== 'range') || tag === 'TEXTAREA' || tag === 'SELECT';
     if (isTextEntry) { return; }
     if (lockOverlayEl && !lockOverlayEl.classList.contains('hidden')) { return; }
 

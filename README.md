@@ -39,6 +39,15 @@ Stop-ScheduledTask -TaskPath \JimlerTech\ -TaskName SolutionDeploy-plex; Start-S
 
 ## Scripts
 
+The web card's Theme select has System, Light and Midnight. Midnight is the
+default; System follows the OS live. Preferences persist in browser localStorage
+under `plex-theme`, using `system`, `light` or `midnight`. Gold stays the accent
+in every theme. Roboto Flex loads from Google Fonts with a system fallback.
+
+Run `node --test Theme.test.mjs` for offline theme and script regression tests.
+After updating `Start-PlexWebUI.ps1`, restart the hosted task and reload the page.
+No Plex server configuration or database changes are required.
+
 | Script | Purpose |
 |---|---|
 | `Start-PlexWebUI.ps1` | The web UI server (`HttpListener`) |

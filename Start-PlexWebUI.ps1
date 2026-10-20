@@ -252,11 +252,68 @@ $htmlPage = @'
   media.addEventListener('change', function () { if (preference === 'system') apply(); });
   document.addEventListener('DOMContentLoaded', function () {
     var control = document.getElementById('theme');
-    control.value = preference;
-    control.addEventListener('change', function () {
-      preference = control.value;
-      try { localStorage.setItem('plex-theme', preference); } catch (e) {}
-      apply();
+    var picker = document.getElementById('themePicker');
+    var menu = document.getElementById('themeMenu');
+    var label = document.getElementById('themeValue');
+    var options = Array.prototype.slice.call(menu.querySelectorAll('[data-theme-preference]'));
+    function sync() {
+      options.forEach(function (option) {
+        var selected = option.dataset.themePreference === preference;
+        option.setAttribute('aria-checked', String(selected));
+        if (selected) label.textContent = option.textContent.trim();
+      });
+    }
+    function close(restore) {
+      menu.hidden = true;
+      control.setAttribute('aria-expanded', 'false');
+      if (restore) control.focus();
+    }
+    function open(index) {
+      menu.hidden = false;
+      control.setAttribute('aria-expanded', 'true');
+      options[index === undefined ? options.findIndex(function (option) {
+        return option.dataset.themePreference === preference;
+      }) : index].focus();
+    }
+    sync();
+    control.addEventListener('click', function () {
+      if (menu.hidden) open(); else close(false);
+    });
+    control.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        open(event.key === 'ArrowDown' ? 0 : options.length - 1);
+      }
+    });
+    options.forEach(function (option) {
+      option.addEventListener('click', function () {
+        preference = option.dataset.themePreference;
+        try { localStorage.setItem('plex-theme', preference); } catch (e) {}
+        apply();
+        sync();
+        close(true);
+      });
+    });
+    menu.addEventListener('keydown', function (event) {
+      var index = options.indexOf(document.activeElement);
+      if (event.key === 'Escape') { event.preventDefault(); close(true); }
+      else if (event.key === 'Tab') close(false);
+      else if ((event.key === 'Enter' || event.key === ' ') && index !== -1) {
+        event.preventDefault();
+        options[index].click();
+      }
+      else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].indexOf(event.key) !== -1) {
+        event.preventDefault();
+        var next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 :
+          (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+        options[next].focus();
+      }
+    });
+    document.addEventListener('pointerdown', function (event) {
+      if (!picker.contains(event.target)) close(false);
+    });
+    document.addEventListener('focusin', function (event) {
+      if (!picker.contains(event.target)) close(false);
     });
   });
 })();
@@ -292,7 +349,15 @@ $htmlPage = @'
   }
   button,input,select,textarea { font-family:inherit; border-radius:0; }
   .theme-setting { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin:0 0 16px; font-size:13px; color:var(--muted); }
-  .theme-setting select { padding:6px; background:var(--btn); color:var(--text); border:1px solid var(--track); }
+  .theme-picker { position:relative; }
+  .theme-trigger { display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:116px; padding:8px 10px; background:var(--btn); color:var(--text); border:1px solid var(--track); cursor:pointer; font:inherit; }
+  .theme-trigger svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; }
+  .theme-menu { position:absolute; right:0; top:calc(100% + 4px); z-index:30; min-width:100%; max-width:calc(100vw - 40px); max-height:min(240px,40dvh); overflow:auto; padding:4px; background:var(--panel); border:1px solid var(--track); box-shadow:0 8px 24px rgba(0,0,0,.3); scrollbar-width:thin; scrollbar-color:var(--muted) var(--panel); }
+  .theme-menu[hidden] { display:none; }
+  .theme-menu button { display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%; border:0; padding:9px 10px; background:transparent; color:var(--text); font:inherit; text-align:left; cursor:pointer; }
+  .theme-menu button:hover,.theme-menu button:focus-visible { background:var(--btn-hover); }
+  .theme-menu button::after { content:''; width:7px; height:12px; border:solid var(--accent); border-width:0 2px 2px 0; transform:rotate(45deg); visibility:hidden; }
+  .theme-menu button[aria-checked=true]::after { visibility:visible; }
   :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .card {
     position:relative;
@@ -521,9 +586,18 @@ $htmlPage = @'
   </div>
 
   <div class="card">
-    <label class="theme-setting" for="theme">Theme
-      <select id="theme"><option value="system">System</option><option value="light">Light</option><option value="midnight">Midnight</option></select>
-    </label>
+    <div class="theme-setting"><span id="themeLabel">Theme</span>
+      <div class="theme-picker" id="themePicker">
+        <button type="button" id="theme" class="theme-trigger" aria-labelledby="themeLabel themeValue" aria-haspopup="menu" aria-expanded="false" aria-controls="themeMenu">
+          <span id="themeValue">Midnight</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div id="themeMenu" class="theme-menu" role="menu" aria-labelledby="themeLabel" hidden>
+          <button type="button" role="menuitemradio" aria-checked="false" tabindex="-1" data-theme-preference="system">System</button>
+          <button type="button" role="menuitemradio" aria-checked="false" tabindex="-1" data-theme-preference="light">Light</button>
+          <button type="button" role="menuitemradio" aria-checked="true" tabindex="-1" data-theme-preference="midnight">Midnight</button>
+        </div>
+      </div>
+    </div>
     <button type="button" class="reload-btn" id="reloadBtn" aria-label="Refresh" title="Refresh">
       <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
     </button>
@@ -1083,6 +1157,7 @@ $htmlPage = @'
 
   document.addEventListener('keydown', function (e) {
     var target = e.target;
+    if (target && target.closest('#themePicker')) { return; }
     var tag = (target && target.tagName) || '';
     var isTextEntry = (tag === 'INPUT' && target.type !== 'range') || tag === 'TEXTAREA' || tag === 'SELECT';
     if (isTextEntry) { return; }

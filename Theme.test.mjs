@@ -21,46 +21,108 @@ function launch(stored, dark = false, blocked = false) {
     let osChanged, ready;
     const storage = new Map(stored === undefined ? [] : [['plex-theme', stored]]);
     const classes = new Set();
-    const root = { dataset: {}, style: {}, classList: {
-        toggle(name, on) { on ? classes.add(name) : classes.delete(name); },
-    } };
+    const root = {
+        dataset: {},
+        style: {},
+        classList: {
+            toggle(name, on) {
+                on ? classes.add(name) : classes.delete(name);
+            },
+        },
+    };
     const meta = {};
     const events = {};
     let active;
     function element(id, text = '') {
-        return { id, textContent: text, hidden: true, attributes: {}, handlers: {},
-            setAttribute(name, value) { this.attributes[name] = value; },
-            addEventListener(type, fn) { this.handlers[type] = fn; },
-            click() { this.handlers.click(); },
-            focus() { active = this; } };
+        return {
+            id,
+            textContent: text,
+            hidden: true,
+            attributes: {},
+            handlers: {},
+            setAttribute(name, value) {
+                this.attributes[name] = value;
+            },
+            addEventListener(type, fn) {
+                this.handlers[type] = fn;
+            },
+            click() {
+                this.handlers.click();
+            },
+            focus() {
+                active = this;
+            },
+        };
     }
     const control = element('theme');
     const label = element('themeValue');
-    const options = ['system', 'light', 'midnight'].map(value => Object.assign(
-        element(value, value[0].toUpperCase() + value.slice(1)), { dataset: { themePreference: value } }));
+    const options = ['system', 'light', 'midnight'].map((value) =>
+        Object.assign(element(value, value[0].toUpperCase() + value.slice(1)), { dataset: { themePreference: value } })
+    );
     const menu = Object.assign(element('themeMenu'), { querySelectorAll: () => options });
-    const picker = { contains: target => [control, menu, label, ...options].includes(target) };
+    const picker = { contains: (target) => [control, menu, label, ...options].includes(target) };
     const elements = { theme: control, themeValue: label, themeMenu: menu, themePicker: picker };
-    const media = { matches: dark, addEventListener(_type, fn) { osChanged = fn; } };
+    const media = {
+        matches: dark,
+        addEventListener(_type, fn) {
+            osChanged = fn;
+        },
+    };
     vm.runInNewContext(script, {
-        document: { documentElement: root, querySelector: () => meta,
-            get activeElement() { return active; },
-            getElementById: id => elements[id],
-            addEventListener(type, fn) { if (type === 'DOMContentLoaded') ready = fn; else events[type] = fn; } },
+        document: {
+            documentElement: root,
+            querySelector: () => meta,
+            get activeElement() {
+                return active;
+            },
+            getElementById: (id) => elements[id],
+            addEventListener(type, fn) {
+                if (type === 'DOMContentLoaded') ready = fn;
+                else events[type] = fn;
+            },
+        },
         matchMedia: () => media,
         localStorage: {
-            getItem(key) { if (blocked) throw Error('blocked'); return storage.get(key) ?? null; },
-            setItem(key, value) { if (blocked) throw Error('blocked'); storage.set(key, value); },
+            getItem(key) {
+                if (blocked) throw Error('blocked');
+                return storage.get(key) ?? null;
+            },
+            setItem(key, value) {
+                if (blocked) throw Error('blocked');
+                storage.set(key, value);
+            },
         },
     });
     ready();
-    return { root, meta, control, storage, classes, label, menu, options,
-        get active() { return active; },
-        open() { control.handlers.click(); },
-        key(key) { menu.handlers.keydown({ key, preventDefault() {} }); },
-        outside() { events.pointerdown({ target: {} }); },
-        choose(value) { options.find(option => option.dataset.themePreference === value).handlers.click(); },
-        os(value) { media.matches = value; osChanged(); } };
+    return {
+        root,
+        meta,
+        control,
+        storage,
+        classes,
+        label,
+        menu,
+        options,
+        get active() {
+            return active;
+        },
+        open() {
+            control.handlers.click();
+        },
+        key(key) {
+            menu.handlers.keydown({ key, preventDefault() {} });
+        },
+        outside() {
+            events.pointerdown({ target: {} });
+        },
+        choose(value) {
+            options.find((option) => option.dataset.themePreference === value).handlers.click();
+        },
+        os(value) {
+            media.matches = value;
+            osChanged();
+        },
+    };
 }
 
 test('Plex defaults to midnight before controls mount', () => {

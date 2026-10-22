@@ -207,6 +207,16 @@ function Write-JsonResponse {
     $Response.OutputStream.Write($bytes, 0, $bytes.Length)
 }
 
+function Confirm-PlexControl {
+    param(
+        [bool]$Accepted,
+        [string]$Action
+    )
+    if (-not $Accepted) {
+        throw "Plex could not send '$Action' to the selected player. Remote streaming and track information can work even when the player cannot receive controls from your home server."
+    }
+}
+
 # Gold star icon (180x180 PNG) for Add-to-Home-Screen on iOS/iPadOS.
 $appleTouchIconBase64 = 'iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAEF0lEQVR4nO3bwXHbMBRFUTqTtRvwTJbqyRWmp5SRCrKAh1EUPQokQeA//HsaMAhcfdCK8/bx47YAz3wbvQDERRyQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScfzj18/fo5cQCHFAIo6/ythgeKyIAxJxfGFg/I84niCUgjggEceyPBsVDI+FOLCBOBgSEnFIREMckLLHwXjYkD2ObcnTIQ5IqeNIPhheSh1HjcwB5Y0j86lXyhtHvbQZEQekpHGkHQa7JI1jr5wxZYwj50kfkDEOVCKOWgnnTbo4Ep7xYeniOCNbWLniyHa6J+WKA7sQxz6pZk+iOFKdaxOJ4sBexLFbngmUJY48J9pQljhwQIo4mo+NJHMoRRw4hjgOyjA85o8jwyleZP44cNjkcVw6NqafSZPHgTPePn7cRq9hy9yfztvn++glbLk2jrmPNoJL87r2Wgn+yXB39fZ2ulYYIW31+dR1eiFlhDTUbTP7/bZCH0303MYBv61wxRzT/9M14HsORsgBQzZtzJdg9LHLqO0a9g0pfVQauFHjvyHlFUQZ/vkZ/28rw7cgpgjbMj6OJcZGhBJkQ8ZfK/e4YoJkUYSYHKtQW9NftMePFccSb4O6Cfjgsa6Ve3mumIBZFOEmxyrslrUV+THjxrHE3rgmgj9g3Gvl3nxXTPAsitCTY2WxlfVcHscjjsVnQ18yehCbOBarbVW8HsHjneOB4yuIVxaF0+RY2W203YILyzgWq+02WuoDy2vlXuQrxjeLwnVyrMIeQNiF1bOPA9exjyPstRJ2YfXs48B1iAMScUDyjiP4vR58eS95x4FLEQck4oBkHIfFjW6xSMU4DlyNOCARByTXOIzucqOlPnCNAx0QByTigGQZh90tbrfgwjKOi9w+3yf4276GiOPLmgWJrIjjeQ30sTj+14S29/fLCBr+OLvg8k6OyuvD7kQbShrHriNP+xZidq2cH/JnjnnsT+8v1+Q4eTbZRkiWOBqea54+UsTR/DiTjBCnd44DV/7VRxhwSQ3NPDk6HMPcI2TOODqf2ax9TBjHkKOasg+bd46a2z3CCbmss8Y8kyPIjgdZRhPfRy+ggWjnUdZj+gc+9+wnR7QyVmEXVs/jnePpp9Bl930X7zo5LDa3MFrqA793Dse9Nn0LMZscjmWs7BZv8M5RPnB2O7vB5Yk8Jkf8fdzF5XEMJgdG8ZgcGII4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUAiDkjEAYk4IBEHJOKARByQiAMScUD6A/2w4mpSMEc+AAAAAElFTkSuQmCC'
 $appleTouchIconBytes = [Convert]::FromBase64String($appleTouchIconBase64)
@@ -826,7 +836,7 @@ $htmlPage = @'
     lastPollAt = Date.now();
     setProgressUI(targetMs);
     fetch(apiUrl('/api/seek') + '&offset=' + targetMs, { method: 'POST' })
-      .then(function (r) { return r.json(); })
+      .then(readApiResponse)
       .then(function (data) {
         // Plex often reports a transient "buffering/paused" state for a moment
         // right after a seek. Seeking doesn't change play/pause intent, so keep
@@ -876,7 +886,7 @@ $htmlPage = @'
     volumeCommitInFlight = true;
     var seq = ++volumeCommitSeq;
     fetch(apiUrl('/api/volume') + '&value=' + val, { method: 'POST' })
-      .then(function (r) { return r.json(); })
+      .then(readApiResponse)
       .then(function (data) {
         volumeCommitInFlight = false;
         if (seq === volumeCommitSeq) { isDraggingVolume = false; render(data, { skipProgress: true }); }
@@ -1035,6 +1045,15 @@ $htmlPage = @'
     return path + '?player=' + encodeURIComponent(selectedPlayer || '');
   }
 
+  function readApiResponse(response) {
+    return response.json().then(function (data) {
+      if (!response.ok) {
+        throw new Error(data.message || ('Request failed (HTTP ' + response.status + ')'));
+      }
+      return data;
+    });
+  }
+
   function closeDeviceMenu() {
     deviceMenuEl.classList.remove('open');
     deviceBtnEl.classList.remove('open');
@@ -1064,7 +1083,7 @@ $htmlPage = @'
 
   function loadPlayers() {
     return fetch('/api/players')
-      .then(function (r) { return r.json(); })
+      .then(readApiResponse)
       .then(function (data) {
         var players = data.players || [];
         deviceMenuEl.innerHTML = '';
@@ -1092,7 +1111,7 @@ $htmlPage = @'
 
   function refresh() {
     return fetch(apiUrl('/api/status'))
-      .then(function (r) { return r.json(); })
+      .then(readApiResponse)
       .then(render)
       .catch(function (e) { setMessage('Could not reach Plex: ' + e, true); });
   }
@@ -1108,7 +1127,7 @@ $htmlPage = @'
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rating: value })
     })
-      .then(function (r) { return r.json(); })
+      .then(readApiResponse)
       .then(function (data) {
         render(data);
         setMessage(value < 3 ? ('Rated ' + value + ' ★ - skipped forward') : ('Rated ' + value + ' ★'));
@@ -1118,14 +1137,14 @@ $htmlPage = @'
 
   document.getElementById('prevBtn').addEventListener('click', function () {
     fetch(apiUrl('/api/previous'), { method: 'POST' })
-      .then(function (r) { return r.json(); })
+      .then(readApiResponse)
       .then(render)
       .catch(function (e) { setMessage('Skip failed: ' + e, true); });
   });
 
   document.getElementById('nextBtn').addEventListener('click', function () {
     fetch(apiUrl('/api/next'), { method: 'POST' })
-      .then(function (r) { return r.json(); })
+      .then(readApiResponse)
       .then(render)
       .catch(function (e) { setMessage('Skip failed: ' + e, true); });
   });
@@ -1136,7 +1155,7 @@ $htmlPage = @'
     paintPlayState(wasPlaying ? 'paused' : 'playing');
 
     fetch(apiUrl('/api/playpause'), { method: 'POST' })
-      .then(function (r) { return r.json(); })
+      .then(readApiResponse)
       .then(render)
       .catch(function (e) { setMessage('Play/pause failed: ' + e, true); });
   });
@@ -1251,6 +1270,14 @@ try {
             $playerFilter = $request.QueryString['player']
             if (-not $playerFilter) { $playerFilter = $Player }
 
+            $controlPaths = @('/api/rate', '/api/next', '/api/previous', '/api/playpause', '/api/seek', '/api/volume')
+            if ($request.Url.AbsolutePath -in $controlPaths) {
+                $controlTracks = @(Get-FilteredTracks -Server $PlexServer -Token $Token -PlayerFilter $playerFilter)
+                if ($controlTracks.Count -ne 1) {
+                    throw "Select exactly one playing device before sending a control."
+                }
+            }
+
             switch ($request.Url.AbsolutePath) {
                 '/' {
                     $bytes = [System.Text.Encoding]::UTF8.GetBytes($htmlPage)
@@ -1314,7 +1341,7 @@ try {
                 '/api/rate' {
                     $reader = New-Object IO.StreamReader($request.InputStream)
                     $body = $reader.ReadToEnd() | ConvertFrom-Json
-                    $tracks = Get-FilteredTracks -Server $PlexServer -Token $Token -PlayerFilter $playerFilter
+                    $tracks = $controlTracks
 
                     if ($tracks -and $tracks.Count -eq 1) {
                         $track = $tracks[0]
@@ -1328,7 +1355,8 @@ try {
 
                         if ($stars -lt 3) {
                             # Track is about to change - skip, give Plex a moment to advance.
-                            Invoke-PlexSkip -Server $PlexServer -Token $Token -MachineIdentifier $track.MachineIdentifier -Direction 'Next' -MediaType $track.MediaType | Out-Null
+                            $accepted = Invoke-PlexSkip -Server $PlexServer -Token $Token -MachineIdentifier $track.MachineIdentifier -Direction 'Next' -MediaType $track.MediaType
+                            Confirm-PlexControl -Accepted $accepted -Action 'skip after rating (rating saved)'
                             Start-Sleep -Milliseconds 900
                         }
                     }
@@ -1338,9 +1366,10 @@ try {
                 }
 
                 '/api/next' {
-                    $tracks = Get-FilteredTracks -Server $PlexServer -Token $Token -PlayerFilter $playerFilter
+                    $tracks = $controlTracks
                     if ($tracks -and $tracks.Count -eq 1) {
-                        Invoke-PlexSkip -Server $PlexServer -Token $Token -MachineIdentifier $tracks[0].MachineIdentifier -Direction 'Next' -MediaType $tracks[0].MediaType | Out-Null
+                        $accepted = Invoke-PlexSkip -Server $PlexServer -Token $Token -MachineIdentifier $tracks[0].MachineIdentifier -Direction 'Next' -MediaType $tracks[0].MediaType
+                        Confirm-PlexControl -Accepted $accepted -Action 'next'
                         Start-Sleep -Milliseconds 900
                     }
                     $status = Get-StatusObject -Server $PlexServer -Token $Token -PlayerFilter $playerFilter
@@ -1348,9 +1377,10 @@ try {
                 }
 
                 '/api/previous' {
-                    $tracks = Get-FilteredTracks -Server $PlexServer -Token $Token -PlayerFilter $playerFilter
+                    $tracks = $controlTracks
                     if ($tracks -and $tracks.Count -eq 1) {
-                        Invoke-PlexSkip -Server $PlexServer -Token $Token -MachineIdentifier $tracks[0].MachineIdentifier -Direction 'Previous' -MediaType $tracks[0].MediaType | Out-Null
+                        $accepted = Invoke-PlexSkip -Server $PlexServer -Token $Token -MachineIdentifier $tracks[0].MachineIdentifier -Direction 'Previous' -MediaType $tracks[0].MediaType
+                        Confirm-PlexControl -Accepted $accepted -Action 'previous'
                         Start-Sleep -Milliseconds 900
                     }
                     $status = Get-StatusObject -Server $PlexServer -Token $Token -PlayerFilter $playerFilter
@@ -1358,11 +1388,12 @@ try {
                 }
 
                 '/api/playpause' {
-                    $tracks = Get-FilteredTracks -Server $PlexServer -Token $Token -PlayerFilter $playerFilter
+                    $tracks = $controlTracks
                     if ($tracks -and $tracks.Count -eq 1) {
                         $track = $tracks[0]
                         $command = if ($track.State -eq 'playing') { 'pause' } else { 'play' }
-                        Invoke-PlexPlaybackCommand -Server $PlexServer -Token $Token -MachineIdentifier $track.MachineIdentifier -Command $command -MediaType $track.MediaType | Out-Null
+                        $accepted = Invoke-PlexPlaybackCommand -Server $PlexServer -Token $Token -MachineIdentifier $track.MachineIdentifier -Command $command -MediaType $track.MediaType
+                        Confirm-PlexControl -Accepted $accepted -Action $command
                         Start-Sleep -Milliseconds 400
                     }
                     $status = Get-StatusObject -Server $PlexServer -Token $Token -PlayerFilter $playerFilter
@@ -1371,10 +1402,11 @@ try {
 
                 '/api/seek' {
                     $offsetMs = [long]$request.QueryString['offset']
-                    $tracks = Get-FilteredTracks -Server $PlexServer -Token $Token -PlayerFilter $playerFilter
+                    $tracks = $controlTracks
                     if ($tracks -and $tracks.Count -eq 1) {
                         $track = $tracks[0]
-                        Invoke-PlexSeek -Server $PlexServer -Token $Token -MachineIdentifier $track.MachineIdentifier -OffsetMs $offsetMs -MediaType $track.MediaType | Out-Null
+                        $accepted = Invoke-PlexSeek -Server $PlexServer -Token $Token -MachineIdentifier $track.MachineIdentifier -OffsetMs $offsetMs -MediaType $track.MediaType
+                        Confirm-PlexControl -Accepted $accepted -Action 'seek'
                         Start-Sleep -Milliseconds 300
                     }
                     $status = Get-StatusObject -Server $PlexServer -Token $Token -PlayerFilter $playerFilter
@@ -1385,13 +1417,17 @@ try {
                     $vol = [int]$request.QueryString['value']
                     if ($vol -lt 0) { $vol = 0 }
                     if ($vol -gt 100) { $vol = 100 }
-                    $tracks = Get-FilteredTracks -Server $PlexServer -Token $Token -PlayerFilter $playerFilter
+                    $tracks = $controlTracks
                     if ($tracks -and $tracks.Count -eq 1) {
                         $track = $tracks[0]
                         if (Test-VolumeSupported -Device $track.Device -Player $track.Player) {
-                            Invoke-PlexSetVolume -Server $PlexServer -Token $Token -MachineIdentifier $track.MachineIdentifier -Volume $vol -MediaType $track.MediaType | Out-Null
+                            $accepted = Invoke-PlexSetVolume -Server $PlexServer -Token $Token -MachineIdentifier $track.MachineIdentifier -Volume $vol -MediaType $track.MediaType
+                            Confirm-PlexControl -Accepted $accepted -Action 'volume'
                             $script:VolumeState[[string]$track.MachineIdentifier] = $vol
                             Save-VolumeState
+                        }
+                        else {
+                            throw "Volume control is not supported on this device."
                         }
                     }
                     $status = Get-StatusObject -Server $PlexServer -Token $Token -PlayerFilter $playerFilter

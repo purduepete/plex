@@ -51,6 +51,28 @@ Run `node --test Theme.test.mjs` for offline theme and script regression tests.
 After updating `Start-PlexWebUI.ps1`, restart the hosted task and reload the page.
 No Plex server configuration or database changes are required.
 
+### Controlling Plexamp away from home
+
+Track information and playback controls use separate paths. The hosted UI reads
+`/status/sessions` from the home Plex server, so it can show a travelling iPhone's
+current track even when controls cannot reach that phone.
+
+Controls use Plex Companion through the home server. Remote music streaming and
+access to this UI through Cloudflare do not make the phone's Companion endpoint
+reachable. Plexamp's official apps have some cloud controls, but this UI does not
+implement that undocumented protocol. See this
+[Plex forum reproduction](https://forums.plex.tv/t/feature-request-supported-server-mediated-api-for-controlling-remote-plex-plexamp-sessions/942315)
+for the same Plexamp-on-iPhone limitation.
+
+Use Plexamp's own controls when away from home. A VPN is only a possible workaround
+if the home server can actually reach the phone's advertised Companion endpoint;
+turning on Tailscale alone does not establish that. Do not expose the phone's
+Companion port to the public internet.
+
+The UI reports rejected or failed command requests and only saves requested volume
+after Plex accepts the request. Acceptance is not confirmation that the player
+applied the command. Volume remains the last accepted request, not a live reading.
+
 | Script                                 | Purpose                                                                         |
 | -------------------------------------- | ------------------------------------------------------------------------------- |
 | `Start-PlexWebUI.ps1`                  | The web UI server (`HttpListener`)                                              |

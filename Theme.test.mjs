@@ -2,10 +2,95 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { spawnSync } from 'node:child_process';
 
 const source = readFileSync(new URL('./Start-PlexWebUI.ps1', import.meta.url), 'utf8');
 const html = source.match(/\$htmlPage = @'\r?\n([\s\S]*?)\r?\n'@/)[1];
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+
+test('API errors reject before control handlers render success', async () => {
+    const playback = html.match(/<script>([\s\S]*?)<\/script>/g).at(-1);
+    const helper = playback.match(/ {2}function readApiResponse\(response\) \{[\s\S]*?\n {2}\}/)[0];
+    const readResponse = vm.runInNewContext(`${helper}\nreadApiResponse`);
+    const status = { found: true, volume: 42 };
+    assert.equal(await readResponse({ ok: true, json: async () => status }), status);
+    await assert.rejects(
+        readResponse({ ok: false, status: 500, json: async () => ({ message: 'Player unreachable' }) }),
+        /Player unreachable/
+    );
+    await assert.rejects(readResponse({ ok: false, status: 502, json: async () => ({}) }), /HTTP 502/);
+    await assert.rejects(
+        readResponse({
+            ok: false,
+            json: async () => {
+                throw Error('Invalid JSON');
+            },
+        }),
+        /Invalid JSON/
+    );
+    assert.doesNotMatch(playback, /\.then\(function \(r\) \{ return r.json\(\); \}\)/);
+});
+
+test('control handlers reject failures and preserve saved volume', () => {
+    const result = spawnSync(
+        'pwsh',
+        [
+            '-NoProfile',
+            '-NonInteractive',
+            '-Command',
+            String.raw`
+        $ErrorActionPreference = 'Stop'
+        $tokens = $null; $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path $PWD 'Start-PlexWebUI.ps1'), [ref]$tokens, [ref]$errors)
+        if ($errors.Count) { throw ($errors | Out-String) }
+        $confirm = $ast.Find({ param($n)
+            $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Confirm-PlexControl'
+        }, $true)
+        . ([scriptblock]::Create($confirm.Extent.Text))
+        function Invoke-PlexSkip { return $script:accepted }
+        function Invoke-PlexPlaybackCommand { return $script:accepted }
+        function Invoke-PlexSeek { return $script:accepted }
+        function Invoke-PlexSetVolume { return $script:accepted }
+        function Start-Sleep {}
+        function Save-VolumeState { $script:saved = $true }
+        function Test-VolumeSupported { return $true }
+        function Get-StatusObject { return @{ found = $true } }
+        function Write-JsonResponse {}
+        $controlTracks = @([pscustomobject]@{
+            MachineIdentifier = 'phone'; State = 'playing'; MediaType = 'music'; Device = 'iPhone'; Player = 'Plexamp'
+        })
+        $request = [pscustomobject]@{ QueryString = @{ value = '80'; offset = '10000' } }
+        $routes = $ast.Find({ param($n)
+            $n -is [System.Management.Automation.Language.SwitchStatementAst] -and
+            $n.Condition.Extent.Text -eq '$request.Url.AbsolutePath'
+        }, $true)
+        foreach ($path in @('/api/next', '/api/previous', '/api/playpause', '/api/seek', '/api/volume')) {
+            $route = $routes.Clauses | Where-Object { $_.Item1.Value -eq $path }
+            $script:accepted = $false
+            $script:saved = $false
+            $script:VolumeState = @{ phone = 25 }
+            $failed = $false
+            try { & ([scriptblock]::Create($route.Item2.Extent.Text.Trim().TrimStart('{').TrimEnd('}'))) }
+            catch {
+                if ($_.Exception.Message -notlike 'Plex could not send*') { throw }
+                $failed = $true
+            }
+            if (-not $failed) { throw "$path did not reject failed command" }
+            if ($script:saved -or $script:VolumeState.phone -ne 25) { throw 'Failed volume was saved' }
+            $script:accepted = $true
+            & ([scriptblock]::Create($route.Item2.Extent.Text.Trim().TrimStart('{').TrimEnd('}')))
+            if ($path -eq '/api/volume' -and (-not $script:saved -or $script:VolumeState.phone -ne 80)) {
+                throw 'Accepted volume was not saved'
+            }
+        }
+        'All control failure/success checks passed'
+    `,
+        ],
+        { encoding: 'utf8' }
+    );
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+});
 
 test('theme and refresh share a compact, vertically centered header', () => {
     const header = html.slice(html.indexOf('<div class="theme-setting">'), html.indexOf('<div class="art-wrap">'));

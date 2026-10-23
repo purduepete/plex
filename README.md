@@ -6,7 +6,9 @@ skipping the current track, a command-line track controller, and a now-playing t
 ## Hosted web UI
 
 The web UI runs on `jimbrownhome1` as the `\JimlerTech\SolutionDeploy-plex` scheduled task, under
-`NT AUTHORITY\LOCAL SERVICE`. It starts at boot, and a 5-minute trigger restarts it if it stops.
+`NT AUTHORITY\LOCAL SERVICE`. It starts at boot and stays running. If the web UI exits with an
+error, Task Scheduler restarts it up to 3 times, 1 minute apart. A healthy task shows `Running`
+with last result `0x41301`.
 
 | Access            | URL                                          |
 | ----------------- | -------------------------------------------- |

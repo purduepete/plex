@@ -356,6 +356,7 @@ $htmlPage = @'
     position:fixed; inset:0; overflow:auto;
     padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
     transition:background-color .3s;
+    scrollbar-gutter:stable;
   }
   button,input,select,textarea { font-family:inherit; border-radius:0; }
   .app-tooltip { position:fixed; z-index:10000; box-sizing:border-box; max-width:min(320px,calc(100vw - 16px)); max-height:calc(100dvh - 16px); overflow:auto; padding:6px 9px; border:1px solid var(--track); border-radius:0; background:var(--panel); color:var(--text); font:13px/1.4 'Roboto Flex',ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,'Noto Sans',sans-serif; overflow-wrap:anywhere; white-space:pre-line; box-shadow:0 4px 14px #0003; }
@@ -389,10 +390,21 @@ $htmlPage = @'
   .reload-btn:hover { background:var(--btn); color:var(--text); }
   .reload-btn:active { transform:scale(.92); }
   .reload-btn svg { width:18px; height:18px; fill:currentColor; }
-  .reload-btn.spinning svg { animation:reload-spin .6s linear; }
+  .reload-btn.spinning svg { animation:reload-spin 1s linear infinite; }
   @keyframes reload-spin {
     from { transform:rotate(0deg); }
     to { transform:rotate(360deg); }
+  }
+  /* Page loading: the overlay hides the card at once, the ring fades in after 250ms,
+     and the card fades in once when the first status arrives. */
+  .page-loading { position:fixed; inset:0; z-index:500; display:flex; align-items:center; justify-content:center; background:var(--bg); }
+  .spinner-wrap { display:inline-flex; animation:fade-in .6s ease-out both; }
+  .spinner { display:block; width:40px; height:40px; border:3px solid var(--track); border-top-color:var(--accent); border-radius:50%; animation:reload-spin 1s linear infinite; }
+  .card.data-enter { animation:fade-in .6s ease-out both; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  @keyframes fade-in {
+    from { opacity:0; }
+    to { opacity:1; }
   }
   .art-wrap {
     width:140px; height:140px; margin:0 auto 18px; border-radius:0;
@@ -599,6 +611,8 @@ $htmlPage = @'
     </div>
   </div>
 
+  <div class="page-loading" id="pageLoading"></div>
+
   <div class="card">
     <div class="theme-setting"><span id="themeLabel" hidden>Theme</span>
       <div class="theme-picker" id="themePicker">
@@ -625,7 +639,7 @@ $htmlPage = @'
       </button>
       <div class="device-menu" id="deviceMenu"></div>
     </div>
-    <h1 id="title">Loading&hellip;</h1>
+    <h1 id="title">&nbsp;</h1>
     <div class="sub" id="artistAlbum">&nbsp;</div>
 
     <div class="progress-wrap">
@@ -1288,13 +1302,22 @@ $htmlPage = @'
 
   document.getElementById('reloadBtn').addEventListener('click', function () {
     var btn = this;
-    btn.classList.remove('spinning');
-    void btn.offsetWidth; // restart the animation even on rapid re-clicks
+    if (btn.classList.contains('spinning')) { return; }
     btn.classList.add('spinning');
-    loadPlayers().then(refresh);
+    loadPlayers().then(refresh).then(function () { btn.classList.remove('spinning'); });
   });
 
-  loadPlayers().then(refresh);
+  var pageLoadingEl = document.getElementById('pageLoading');
+  var pageRingTimer = setTimeout(function () {
+    pageLoadingEl.innerHTML = '<div class="spinner-wrap" role="status"><span class="spinner" aria-hidden="true"></span><span class="sr-only">Loading now playing</span></div>';
+  }, 250);
+  function finishPageLoading() {
+    clearTimeout(pageRingTimer);
+    pageLoadingEl.remove();
+    document.querySelector('.card').classList.add('data-enter');
+  }
+
+  loadPlayers().then(refresh).then(finishPageLoading);
   setInterval(refresh, 8000);
 })();
 </script>

@@ -398,6 +398,7 @@ $htmlPage = @'
   /* Page loading: the overlay hides the card at once, the ring fades in after 250ms,
      and the card fades in once when the first status arrives. */
   .page-loading { position:fixed; inset:0; z-index:500; display:flex; align-items:center; justify-content:center; background:var(--bg); }
+  .page-loading, [role=status] { caret-color:transparent; user-select:none; -webkit-user-select:none; }
   .spinner-wrap { display:inline-flex; animation:fade-in .6s ease-out both; }
   .spinner { display:block; width:40px; height:40px; border:3px solid var(--track); border-top-color:var(--accent); border-radius:50%; animation:reload-spin 1s linear infinite; }
   .card.data-enter { animation:fade-in .6s ease-out both; }

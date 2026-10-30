@@ -358,6 +358,9 @@ $htmlPage = @'
     transition:background-color .3s;
   }
   button,input,select,textarea { font-family:inherit; border-radius:0; }
+  .app-tooltip { position:fixed; z-index:10000; box-sizing:border-box; max-width:min(320px,calc(100vw - 16px)); max-height:calc(100dvh - 16px); overflow:auto; padding:6px 9px; border:1px solid var(--track); border-radius:0; background:var(--panel); color:var(--text); font:13px/1.4 'Roboto Flex',ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,'Noto Sans',sans-serif; overflow-wrap:anywhere; white-space:pre-line; box-shadow:0 4px 14px #0003; }
+  .app-tooltip[hidden] { display:none; }
+  [data-tip]:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .theme-setting { display:flex; align-items:center; justify-content:space-between; margin:0 0 16px; font-size:13px; color:var(--muted); }
   .theme-picker { position:relative; }
   .theme-trigger { display:flex; align-items:center; justify-content:space-between; gap:8px; height:32px; padding:6px 8px; background:transparent; color:var(--muted); border:0; cursor:pointer; font:inherit; }
@@ -608,7 +611,7 @@ $htmlPage = @'
           <button type="button" role="menuitemradio" aria-checked="true" tabindex="-1" data-theme-preference="midnight">Midnight</button>
         </div>
       </div>
-    <button type="button" class="reload-btn" id="reloadBtn" aria-label="Refresh" title="Refresh">
+    <button type="button" class="reload-btn" id="reloadBtn" aria-label="Refresh" data-tip="Refresh">
       <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
     </button>
     </div>
@@ -662,7 +665,7 @@ $htmlPage = @'
       <button type="button" class="vol-btn" id="volDownBtn" aria-label="Decrease volume">
         <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
       </button>
-      <input type="range" id="volumeSlider" min="0" max="100" step="1" value="50" title="Volume">
+      <input type="range" id="volumeSlider" min="0" max="100" step="1" value="50" aria-label="Volume" data-tip="Volume">
       <button type="button" class="vol-btn" id="volUpBtn" aria-label="Increase volume">
         <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
       </button>
@@ -673,6 +676,77 @@ $htmlPage = @'
 
 <script>
 (function () {
+// Shared delegated tooltips also cover playback status changes.
+(function appTooltips() {
+  var tip = document.createElement('div');
+  tip.id = 'app-tooltip';
+  tip.className = 'app-tooltip';
+  tip.setAttribute('role', 'tooltip');
+  tip.hidden = true;
+  document.body.appendChild(tip);
+  var target = null, timer;
+  function hide() {
+    clearTimeout(timer);
+    if (target) {
+      var ids = (target.getAttribute('aria-describedby') || '').split(/\s+/).filter(function(id) { return id && id !== tip.id; });
+      if (ids.length) target.setAttribute('aria-describedby', ids.join(' '));
+      else target.removeAttribute('aria-describedby');
+    }
+    target = null;
+    tip.hidden = true;
+  }
+  function place() {
+    var box = target.getBoundingClientRect(), rect = tip.getBoundingClientRect();
+    var width = document.documentElement.clientWidth, height = window.innerHeight;
+    tip.style.left = Math.max(8, Math.min(box.left + box.width / 2 - rect.width / 2, width - rect.width - 8)) + 'px';
+    var top = box.bottom + 6;
+    if (top + rect.height > height - 8) top = box.top - rect.height - 6;
+    tip.style.top = Math.max(8, Math.min(top, height - rect.height - 8)) + 'px';
+  }
+  function show(next) {
+    clearTimeout(timer);
+    if (!next.dataset.tip || !next.isConnected) { hide(); return; }
+    if (target !== next) hide();
+    target = next;
+    tip.textContent = target.dataset.tip;
+    var ids = (target.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+    if (ids.indexOf(tip.id) === -1) ids.push(tip.id);
+    target.setAttribute('aria-describedby', ids.join(' '));
+    tip.hidden = false;
+    place();
+  }
+  document.addEventListener('pointerover', function(event) {
+    if (event.pointerType === 'touch') return;
+    if (tip.contains(event.target)) { clearTimeout(timer); return; }
+    var next = event.target.closest && event.target.closest('[data-tip]');
+    if (next) show(next);
+  });
+  document.addEventListener('pointerout', function(event) {
+    if (!target || (!target.contains(event.target) && !tip.contains(event.target))) return;
+    var next = event.relatedTarget;
+    if (next && (target.contains(next) || tip.contains(next))) return;
+    clearTimeout(timer);
+    timer = setTimeout(hide, 180);
+  });
+  document.addEventListener('focusin', function(event) {
+    var next = event.target.closest && event.target.closest('[data-tip]');
+    if (next) show(next); else hide();
+  });
+  document.addEventListener('focusout', function(event) {
+    if (target && target.contains(event.target)) hide();
+  });
+  document.addEventListener('click', hide, true);
+  document.addEventListener('keydown', function(event) { if (event.key === 'Escape') hide(); });
+  window.addEventListener('scroll', hide, true);
+  window.addEventListener('resize', hide);
+  window.addEventListener('pagehide', hide);
+  new MutationObserver(function() {
+    if (!target) return;
+    if (!target.isConnected || !target.dataset.tip) hide();
+    else if (tip.textContent !== target.dataset.tip) show(target);
+  }).observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['data-tip']});
+})();
+// End shared tooltips.
   var starEls = Array.prototype.slice.call(document.querySelectorAll('#stars .star'));
   var starsContainer = document.getElementById('stars');
   var msgEl = document.getElementById('msg');
@@ -967,6 +1041,9 @@ $htmlPage = @'
       volDownBtnEl.disabled = true;
       volUpBtnEl.disabled = true;
       volumeRowEl.classList.add('unsupported');
+      volumeSliderEl.dataset.tip = '';
+      volumeRowEl.dataset.tip = 'Volume unavailable while nothing is playing';
+      volumeRowEl.tabIndex = 0;
       if (!isDraggingVolume) { volumeSliderEl.value = 50; }
       setTransportEnabled(false);
       return;
@@ -1033,7 +1110,9 @@ $htmlPage = @'
     volDownBtnEl.disabled = !volSupported;
     volUpBtnEl.disabled = !volSupported;
     volumeRowEl.classList.toggle('unsupported', !volSupported);
-    volumeSliderEl.title = volSupported ? 'Volume' : 'Volume control not supported on this device';
+    volumeSliderEl.dataset.tip = volSupported ? 'Volume' : '';
+    volumeRowEl.dataset.tip = volSupported ? '' : 'Volume control not supported on this device';
+    volumeRowEl.tabIndex = volSupported ? -1 : 0;
     if (!volSupported) {
       if (!isDraggingVolume) { volumeSliderEl.value = 50; }
     } else if (!isDraggingVolume && typeof data.volume === 'number') {

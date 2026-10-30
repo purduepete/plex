@@ -7,7 +7,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --test Theme.test.mjs",
+    "test": "node --test Theme.test.mjs Tooltips.test.mjs",
     "prepare": "husky"
   },
   "lint-staged": {

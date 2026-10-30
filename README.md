@@ -49,7 +49,13 @@ The menu supports arrows, Home/End, Enter/Space, Escape, Tab and outside-click
 dismissal. Selection and Escape return focus to the trigger; no native dropdown
 is rendered.
 
-Run `node --test Theme.test.mjs` for offline theme and script regression tests.
+Refresh and volume hints use one delegated, theme-aware tooltip. Hover or focus
+shows a hint; Escape, scroll and click dismiss it. Unsupported volume controls
+have a focusable row explaining their disabled state.
+
+Run `npm test` for offline theme, script and tooltip regression tests. Tooltip
+tests evaluate the canonical PowerShell HTML without starting a server, and check
+dynamic volume status, pointer transfer, focus, dismissal and cleanup.
 After updating `Start-PlexWebUI.ps1`, restart the hosted task and reload the page.
 No Plex server configuration or database changes are required.
 

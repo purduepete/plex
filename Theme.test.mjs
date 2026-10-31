@@ -8,6 +8,12 @@ const source = readFileSync(new URL('./Start-PlexWebUI.ps1', import.meta.url), '
 const html = source.match(/\$htmlPage = @'\r?\n([\s\S]*?)\r?\n'@/)[1];
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
+test('applies the theme before requesting the font stylesheet', () => {
+    const theme = html.indexOf('<script>');
+    const font = html.indexOf('https://fonts.googleapis.com/css2');
+    assert.ok(theme >= 0 && font > theme);
+});
+
 test('first-load gate reveals once, with immediate failures and no refresh replay', () => {
     assert.match(html, /<body data-first-load="loading">/);
     assert.match(html, /body\[data-first-load="loading"\] \.card \{ visibility:hidden; opacity:0; \}/);

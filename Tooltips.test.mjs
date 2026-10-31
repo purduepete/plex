@@ -7,8 +7,9 @@ import vm from 'node:vm';
 const source = readFileSync(new URL('./Start-PlexWebUI.ps1', import.meta.url), 'utf8');
 const html = source.match(/\$htmlPage = @'\r?\n([\s\S]*?)\r?\n'@/)[1];
 const helper = source.slice(source.indexOf('(function appTooltips()'), source.indexOf('// End shared tooltips.'));
+const settingOff = 'var SHOW_TOOLTIPS = false;';
 
-function fixture() {
+function fixture(showTooltips = true) {
     const listeners = {},
         timers = new Map();
     let observe,
@@ -37,7 +38,7 @@ function fixture() {
     }
     let tip;
     const addEventListener = (name, fn) => (listeners[name] ??= []).push(fn);
-    vm.runInNewContext(helper, {
+    vm.runInNewContext(showTooltips ? helper.replace(settingOff, 'var SHOW_TOOLTIPS = true;') : helper, {
         document: {
             createElement: () => (tip = element()),
             body: { appendChild() {} },
@@ -71,6 +72,18 @@ function fixture() {
         },
     };
 }
+
+test('SHOW_TOOLTIPS defaults to false and keeps hints closed with their descriptions', () => {
+    assert.ok(helper.includes(settingOff));
+    const f = fixture(false),
+        target = f.element('Refresh');
+    f.event('pointerover', target, { pointerType: 'mouse' });
+    assert.equal(f.tip.hidden, true);
+    f.event('focusin', target);
+    assert.equal(f.tip.hidden, true);
+    assert.equal(f.tip.textContent, 'Refresh');
+    assert.equal(target.getAttribute('aria-describedby'), 'app-tooltip');
+});
 
 test('canonical PowerShell HTML has themed hints, named controls and valid emitted scripts', () => {
     const result = spawnSync(

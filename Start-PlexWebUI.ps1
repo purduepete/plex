@@ -695,6 +695,8 @@ $htmlPage = @'
 (function () {
 // Shared delegated tooltips also cover playback status changes.
 (function appTooltips() {
+  // Hidden site setting. While false, control hints stay closed but remain screen reader descriptions.
+  var SHOW_TOOLTIPS = false;
   var tip = document.createElement('div');
   tip.id = 'app-tooltip';
   tip.className = 'app-tooltip';
@@ -729,6 +731,7 @@ $htmlPage = @'
     var ids = (target.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
     if (ids.indexOf(tip.id) === -1) ids.push(tip.id);
     target.setAttribute('aria-describedby', ids.join(' '));
+    if (!SHOW_TOOLTIPS) return;
     tip.hidden = false;
     place();
   }

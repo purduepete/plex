@@ -261,6 +261,7 @@ $htmlPage = @'
   media.addEventListener('change', function () { if (preference === 'system') apply(); });
   document.addEventListener('DOMContentLoaded', function () {
     var control = document.getElementById('theme');
+    var picker = document.getElementById('themePicker');
     var menu = document.getElementById('themeMenu');
     var group = document.getElementById('themeSegments');
     var label = document.getElementById('themeValue');
@@ -278,10 +279,10 @@ $htmlPage = @'
         option.tabIndex = i === index ? 0 : -1;
       });
     }
-    function close() {
+    function close(returnFocus) {
       menu.hidden = true;
       control.setAttribute('aria-expanded', 'false');
-      control.focus();
+      if (returnFocus !== false) control.focus();
     }
     function open(index) {
       menu.hidden = false;
@@ -289,7 +290,10 @@ $htmlPage = @'
       options[index === undefined ? selectedIndex() : index].focus();
     }
     sync();
-    // Only the palette icon (or Escape) closes the popover; choosing a theme keeps it open.
+    // Choosing a theme keeps the popover open; the palette icon, Escape or an outside press closes it.
+    document.addEventListener('pointerdown', function (event) {
+      if (!menu.hidden && !picker.contains(event.target)) close(false);
+    });
     control.addEventListener('click', function () {
       if (menu.hidden) open(); else close();
     });

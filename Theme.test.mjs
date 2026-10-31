@@ -189,7 +189,8 @@ function launch(stored, dark = false, blocked = false) {
     );
     const menu = Object.assign(element('themeMenu'), { querySelectorAll: () => options });
     const group = element('themeSegments');
-    const elements = { theme: control, themeValue: label, themeMenu: menu, themeSegments: group };
+    const picker = { contains: (target) => [control, menu, label, group, ...options].includes(target) };
+    const elements = { theme: control, themeValue: label, themeMenu: menu, themeSegments: group, themePicker: picker };
     const media = {
         matches: dark,
         addEventListener(_type, fn) {
@@ -300,7 +301,7 @@ test('HTML scripts compile and UI retains gold, square controls and rounded trac
     for (const value of ['system', 'light', 'midnight']) assert(html.includes(`data-theme-preference="${value}"`));
 });
 
-test('pill popover keeps open on selection and closes only from the palette icon or Escape', () => {
+test('pill popover stays open on selection and closes from the icon, Escape or an outside press', () => {
     const app = launch('midnight');
     assert.equal(app.control.attributes['aria-label'], 'Theme: Midnight');
     assert.equal(app.group.style['--theme-index'], 1);
@@ -329,8 +330,13 @@ test('pill popover keeps open on selection and closes only from the palette icon
     assert.equal(app.menu.hidden, false);
     app.key('Tab');
     assert.equal(app.menu.hidden, false);
-    assert.equal(app.events.pointerdown, undefined);
     assert.equal(app.events.focusin, undefined);
+    app.events.pointerdown({ target: app.options[1] });
+    assert.equal(app.menu.hidden, false);
+    app.events.pointerdown({ target: {} });
+    assert.equal(app.menu.hidden, true);
+    assert.equal(app.control.attributes['aria-expanded'], 'false');
+    app.open();
     app.open();
     assert.equal(app.menu.hidden, true);
     assert.equal(app.control.attributes['aria-expanded'], 'false');

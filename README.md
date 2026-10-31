@@ -48,8 +48,8 @@ System pills, matching Solution Directory. Midnight is the
 default; System follows the OS live. Preferences persist in browser localStorage
 under `plex-theme`, using `system`, `light` or `midnight`. Gold stays the accent
 in every theme. Roboto Flex loads from Google Fonts with a system fallback.
-Choosing a theme keeps the popover open; only the palette icon (or Escape) closes
-it and returns focus to the icon. Arrows and Home/End move between pills; no
+Choosing a theme keeps the popover open; the palette icon, Escape or a press
+outside the popover closes it. Arrows and Home/End move between pills; no
 native dropdown is rendered.
 
 Refresh and volume hints use one delegated, theme-aware tooltip. The hidden

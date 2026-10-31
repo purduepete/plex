@@ -364,7 +364,8 @@ $htmlPage = @'
   .theme-setting { display:flex; align-items:center; justify-content:space-between; margin:0 0 16px; font-size:13px; color:var(--muted); }
   .theme-picker { position:relative; }
   .theme-trigger { display:flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; background:transparent; color:var(--muted); border:0; cursor:pointer; font:inherit; }
-  .theme-trigger:hover,.theme-trigger[aria-expanded=true] { background:var(--btn); color:var(--text); }
+  .theme-trigger:hover { color:var(--text); }
+  .theme-trigger[aria-expanded=true] { background:var(--btn); color:var(--text); }
   .theme-setting svg { fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .theme-trigger svg { width:18px; height:18px; }
   .theme-menu { position:absolute; right:0; top:calc(100% + 8px); z-index:30; width:min(320px,calc(100vw - 40px)); padding:16px; background:var(--panel); border:1px solid var(--track); box-shadow:0 4px 12px #0003; text-align:left; }

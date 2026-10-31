@@ -384,6 +384,8 @@ $htmlPage = @'
     .theme-selection { inset:0 auto 0 0; width:calc(100% / 3); }
   }
   :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  /* Focus outlines are for keyboard use; a tap or click never leaves one behind. */
+  html.pointer-input :focus-visible { outline:none; }
   .card {
     position:relative;
     background:var(--panel); border-radius:0; padding:14px 30px 36px;
@@ -481,7 +483,7 @@ $htmlPage = @'
     transition:background .15s; min-height:56px; touch-action:manipulation;
     flex:1 1 0; min-width:0; white-space:nowrap; overflow:hidden;
   }
-  button.nav:hover { background:var(--btn-hover); }
+  button.nav:not(.transport):hover, button.nav.transport.pressed { background:var(--btn-hover); }
   button.nav:active { transform:scale(.96); }
   /* Mirrors :active exactly - used when a button is triggered via keyboard
      shortcut (programmatic .click() doesn't engage :active on its own). */
@@ -677,15 +679,15 @@ $htmlPage = @'
     </div>
 
     <div class="controls">
-      <button class="nav" id="prevBtn">
+      <button class="nav transport" id="prevBtn">
         <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
         Back
       </button>
-      <button class="nav nav-icon" id="playPauseBtn" aria-label="Play/Pause">
+      <button class="nav nav-icon transport" id="playPauseBtn" aria-label="Play/Pause">
         <svg id="iconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         <svg id="iconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
       </button>
-      <button class="nav" id="nextBtn">
+      <button class="nav transport" id="nextBtn">
         Forward
         <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
       </button>
@@ -781,6 +783,17 @@ $htmlPage = @'
   }).observe(document.body, {subtree:true, childList:true, attributes:true, attributeFilter:['data-tip']});
 })();
 // End shared tooltips.
+  document.addEventListener('pointerdown', function () { document.documentElement.classList.add('pointer-input'); }, true);
+  document.addEventListener('keydown', function () { document.documentElement.classList.remove('pointer-input'); }, true);
+  // Back, Play/Pause and Forward show their pressed color for 3 seconds.
+  Array.prototype.forEach.call(document.querySelectorAll('button.transport'), function (btn) {
+    var pressedTimer;
+    btn.addEventListener('click', function () {
+      clearTimeout(pressedTimer);
+      btn.classList.add('pressed');
+      pressedTimer = setTimeout(function () { btn.classList.remove('pressed'); }, 3000);
+    });
+  });
   var starEls = Array.prototype.slice.call(document.querySelectorAll('#stars .star'));
   var starsContainer = document.getElementById('stars');
   var msgEl = document.getElementById('msg');

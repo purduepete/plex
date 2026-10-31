@@ -143,6 +143,20 @@ test('theme and refresh share a compact, vertically centered header', () => {
     assert.doesNotMatch(html, /\.reload-btn \{[^}]*position:absolute/);
 });
 
+test('pointer presses leave no outline and transport color clears after 3 seconds', () => {
+    assert.match(html, /html\.pointer-input :focus-visible \{ outline:none; \}/);
+    assert.match(html, /classList\.add\('pointer-input'\)/);
+    assert.match(html, /classList\.remove\('pointer-input'\)/);
+    for (const id of ['prevBtn', 'playPauseBtn', 'nextBtn']) {
+        assert.match(html, new RegExp(`class="nav[^"]*transport" id="${id}"`));
+    }
+    assert.match(
+        html,
+        /button\.nav:not\(\.transport\):hover, button\.nav\.transport\.pressed \{ background:var\(--btn-hover\); \}/
+    );
+    assert.match(html, /btn\.classList\.remove\('pressed'\); \}, 3000\)/);
+});
+
 function launch(stored, dark = false, blocked = false) {
     let osChanged, ready;
     const storage = new Map(stored === undefined ? [] : [['plex-theme', stored]]);

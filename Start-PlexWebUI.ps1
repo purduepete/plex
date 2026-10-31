@@ -401,7 +401,7 @@ $htmlPage = @'
   }
   .reload-btn:active { transform:scale(.92); }
   /* A permanent layer keeps the icon's weight the same while it spins. */
-  .reload-btn svg { width:18px; height:18px; fill:currentColor; will-change:transform; }
+  .reload-btn svg { width:18px; height:18px; fill:none; will-change:transform; }
   .reload-btn.spinning svg { animation:reload-spin 1s linear infinite; }
   @keyframes reload-spin {
     from { transform:rotate(0deg); }
@@ -645,7 +645,7 @@ $htmlPage = @'
         </div>
       </div>
     <button type="button" class="reload-btn" id="reloadBtn" aria-label="Refresh" data-tip="Refresh">
-      <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8.1 8.1 0 1 0-2.5 5.9"/><path d="M20 4v7h-7"/></svg>
     </button>
     </div>
     <div class="art-wrap">
@@ -785,13 +785,13 @@ $htmlPage = @'
 // End shared tooltips.
   document.addEventListener('pointerdown', function () { document.documentElement.classList.add('pointer-input'); }, true);
   document.addEventListener('keydown', function () { document.documentElement.classList.remove('pointer-input'); }, true);
-  // Back, Play/Pause, Forward and the volume buttons show their pressed color for 2 seconds.
+  // Back, Play/Pause, Forward and the volume buttons show their pressed color for 1 second.
   Array.prototype.forEach.call(document.querySelectorAll('button.transport, button.vol-btn'), function (btn) {
     var pressedTimer;
     btn.addEventListener('click', function () {
       clearTimeout(pressedTimer);
       btn.classList.add('pressed');
-      pressedTimer = setTimeout(function () { btn.classList.remove('pressed'); }, 2000);
+      pressedTimer = setTimeout(function () { btn.classList.remove('pressed'); }, 1000);
     });
   });
   var starEls = Array.prototype.slice.call(document.querySelectorAll('#stars .star'));

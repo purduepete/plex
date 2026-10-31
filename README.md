@@ -60,8 +60,8 @@ have a focusable row explaining their disabled state.
 
 Tapping the star that matches the current rating clears the rating to 0 stars
 (Plex `rating=-1`) without skipping. Ratings of 1 or 2 stars still skip forward.
-Back, Play/Pause, Forward and the volume buttons keep their pressed color for 2
-seconds.
+Back, Play/Pause, Forward and the volume buttons keep their pressed color for 1
+second.
 
 Run `npm test` for offline theme, script and tooltip regression tests. Tooltip
 tests evaluate the canonical PowerShell HTML without starting a server, and check

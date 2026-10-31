@@ -125,9 +125,18 @@ test('theme and refresh share a compact, vertically centered header', () => {
     const header = html.slice(html.indexOf('<div class="theme-setting">'), html.indexOf('<div class="art-wrap">'));
     assert(header.includes('id="themePicker"'));
     assert(header.includes('id="reloadBtn"'));
-    assert(header.includes('id="themeLabel" hidden'));
+    assert(header.includes('id="themeLabel" class="theme-menu-label"'));
+    assert(header.includes('aria-label="Theme: Midnight"'));
+    assert(header.includes('M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 0-4'));
     assert.match(html, /\.theme-setting \{[^}]*align-items:center; justify-content:space-between;/);
-    assert.match(html, /\.theme-trigger \{[^}]*height:32px;[^}]*background:transparent;/);
+    assert.match(html, /\.theme-trigger \{[^}]*width:32px; height:32px;[^}]*background:transparent;/);
+    assert.match(html, /\.theme-selection \{[^}]*background:var\(--accent\);[^}]*transition:transform \.25s ease-out;/);
+    assert.match(html, /\.theme-segments \[aria-pressed=true\] \{ color:#0f172a; \}/);
+    const order = ['light', 'midnight', 'system'].map((value) => header.indexOf(`data-theme-preference="${value}"`));
+    assert.deepEqual(
+        order,
+        [...order].sort((a, b) => a - b)
+    );
     assert.doesNotMatch(html, /\.reload-btn \{[^}]*position:absolute/);
 });
 
@@ -154,6 +163,11 @@ function launch(stored, dark = false, blocked = false) {
             hidden: true,
             attributes: {},
             handlers: {},
+            style: {
+                setProperty(name, value) {
+                    this[name] = value;
+                },
+            },
             setAttribute(name, value) {
                 this.attributes[name] = value;
             },
@@ -170,12 +184,12 @@ function launch(stored, dark = false, blocked = false) {
     }
     const control = element('theme');
     const label = element('themeValue');
-    const options = ['system', 'light', 'midnight'].map((value) =>
+    const options = ['light', 'midnight', 'system'].map((value) =>
         Object.assign(element(value, value[0].toUpperCase() + value.slice(1)), { dataset: { themePreference: value } })
     );
     const menu = Object.assign(element('themeMenu'), { querySelectorAll: () => options });
-    const picker = { contains: (target) => [control, menu, label, ...options].includes(target) };
-    const elements = { theme: control, themeValue: label, themeMenu: menu, themePicker: picker };
+    const group = element('themeSegments');
+    const elements = { theme: control, themeValue: label, themeMenu: menu, themeSegments: group };
     const media = {
         matches: dark,
         addEventListener(_type, fn) {
@@ -216,7 +230,9 @@ function launch(stored, dark = false, blocked = false) {
         classes,
         label,
         menu,
+        group,
         options,
+        events,
         get active() {
             return active;
         },
@@ -225,9 +241,6 @@ function launch(stored, dark = false, blocked = false) {
         },
         key(key) {
             menu.handlers.keydown({ key, preventDefault() {} });
-        },
-        outside() {
-            events.pointerdown({ target: {} });
         },
         choose(value) {
             options.find((option) => option.dataset.themePreference === value).handlers.click();
@@ -287,34 +300,43 @@ test('HTML scripts compile and UI retains gold, square controls and rounded trac
     for (const value of ['system', 'light', 'midnight']) assert(html.includes(`data-theme-preference="${value}"`));
 });
 
-test('custom menu supports navigation, selection and dismissal with focus return', () => {
+test('pill popover keeps open on selection and closes only from the palette icon or Escape', () => {
     const app = launch('midnight');
+    assert.equal(app.control.attributes['aria-label'], 'Theme: Midnight');
+    assert.equal(app.group.style['--theme-index'], 1);
     app.open();
     assert.equal(app.menu.hidden, false);
-    assert.equal(app.active, app.options[2]);
+    assert.equal(app.control.attributes['aria-expanded'], 'true');
+    assert.equal(app.active, app.options[1]);
     app.key('Home');
     assert.equal(app.active, app.options[0]);
-    app.key('ArrowUp');
+    app.key('ArrowLeft');
     assert.equal(app.active, app.options[2]);
-    app.key('ArrowDown');
+    app.key('ArrowRight');
     assert.equal(app.active, app.options[0]);
     app.key('End');
     assert.equal(app.active, app.options[2]);
-    app.key(' ');
+    app.choose('light');
+    assert.equal(app.menu.hidden, false);
+    assert.equal(app.active, app.options[0]);
+    assert.equal(app.options[0].attributes['aria-pressed'], 'true');
+    assert.equal(app.options[1].attributes['aria-pressed'], 'false');
+    assert.equal(app.options[0].tabIndex, 0);
+    assert.equal(app.group.style['--theme-index'], 0);
+    assert.equal(app.control.attributes['aria-label'], 'Theme: Light');
+    assert.equal(app.storage.get('plex-theme'), 'light');
+    app.choose('system');
+    assert.equal(app.menu.hidden, false);
+    app.key('Tab');
+    assert.equal(app.menu.hidden, false);
+    assert.equal(app.events.pointerdown, undefined);
+    assert.equal(app.events.focusin, undefined);
+    app.open();
     assert.equal(app.menu.hidden, true);
+    assert.equal(app.control.attributes['aria-expanded'], 'false');
+    assert.equal(app.active, app.control);
     app.open();
     app.key('Escape');
     assert.equal(app.menu.hidden, true);
     assert.equal(app.active, app.control);
-    app.open();
-    app.choose('light');
-    assert.equal(app.options[1].attributes['aria-checked'], 'true');
-    assert.equal(app.storage.get('plex-theme'), 'light');
-    assert.equal(app.menu.hidden, true);
-    app.open();
-    app.key('Tab');
-    assert.equal(app.menu.hidden, true);
-    app.open();
-    app.outside();
-    assert.equal(app.menu.hidden, true);
 });

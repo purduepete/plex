@@ -261,37 +261,42 @@ $htmlPage = @'
   media.addEventListener('change', function () { if (preference === 'system') apply(); });
   document.addEventListener('DOMContentLoaded', function () {
     var control = document.getElementById('theme');
-    var picker = document.getElementById('themePicker');
     var menu = document.getElementById('themeMenu');
+    var group = document.getElementById('themeSegments');
     var label = document.getElementById('themeValue');
     var options = Array.prototype.slice.call(menu.querySelectorAll('[data-theme-preference]'));
+    function selectedIndex() {
+      return options.findIndex(function (option) { return option.dataset.themePreference === preference; });
+    }
     function sync() {
-      options.forEach(function (option) {
-        var selected = option.dataset.themePreference === preference;
-        option.setAttribute('aria-checked', String(selected));
-        if (selected) label.textContent = option.textContent.trim();
+      var index = selectedIndex();
+      label.textContent = options[index].textContent.trim();
+      control.setAttribute('aria-label', 'Theme: ' + label.textContent);
+      group.style.setProperty('--theme-index', index);
+      options.forEach(function (option, i) {
+        option.setAttribute('aria-pressed', String(i === index));
+        option.tabIndex = i === index ? 0 : -1;
       });
     }
-    function close(restore) {
+    function close() {
       menu.hidden = true;
       control.setAttribute('aria-expanded', 'false');
-      if (restore) control.focus();
+      control.focus();
     }
     function open(index) {
       menu.hidden = false;
       control.setAttribute('aria-expanded', 'true');
-      options[index === undefined ? options.findIndex(function (option) {
-        return option.dataset.themePreference === preference;
-      }) : index].focus();
+      options[index === undefined ? selectedIndex() : index].focus();
     }
     sync();
+    // Only the palette icon (or Escape) closes the popover; choosing a theme keeps it open.
     control.addEventListener('click', function () {
-      if (menu.hidden) open(); else close(false);
+      if (menu.hidden) open(); else close();
     });
     control.addEventListener('keydown', function (event) {
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (['ArrowDown', 'ArrowUp', 'Home', 'End'].indexOf(event.key) !== -1) {
         event.preventDefault();
-        open(event.key === 'ArrowDown' ? 0 : options.length - 1);
+        open(event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : undefined);
       }
     });
     options.forEach(function (option) {
@@ -300,29 +305,19 @@ $htmlPage = @'
         try { localStorage.setItem('plex-theme', preference); } catch (e) {}
         apply();
         sync();
-        close(true);
+        option.focus();
       });
     });
     menu.addEventListener('keydown', function (event) {
       var index = options.indexOf(document.activeElement);
-      if (event.key === 'Escape') { event.preventDefault(); close(true); }
-      else if (event.key === 'Tab') close(false);
-      else if ((event.key === 'Enter' || event.key === ' ') && index !== -1) {
-        event.preventDefault();
-        options[index].click();
-      }
-      else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].indexOf(event.key) !== -1) {
-        event.preventDefault();
-        var next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 :
-          (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
-        options[next].focus();
-      }
-    });
-    document.addEventListener('pointerdown', function (event) {
-      if (!picker.contains(event.target)) close(false);
-    });
-    document.addEventListener('focusin', function (event) {
-      if (!picker.contains(event.target)) close(false);
+      var next;
+      if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+      if (index === -1) return;
+      if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next = (index + 1) % options.length;
+      if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') next = (index + options.length - 1) % options.length;
+      if (event.key === 'Home') next = 0;
+      if (event.key === 'End') next = options.length - 1;
+      if (next !== undefined) { event.preventDefault(); options[next].focus(); }
     });
   });
 })();
@@ -364,15 +359,25 @@ $htmlPage = @'
   [data-tip]:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .theme-setting { display:flex; align-items:center; justify-content:space-between; margin:0 0 16px; font-size:13px; color:var(--muted); }
   .theme-picker { position:relative; }
-  .theme-trigger { display:flex; align-items:center; justify-content:space-between; gap:8px; height:32px; padding:6px 8px; background:transparent; color:var(--muted); border:0; cursor:pointer; font:inherit; }
+  .theme-trigger { display:flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; background:transparent; color:var(--muted); border:0; cursor:pointer; font:inherit; }
   .theme-trigger:hover,.theme-trigger[aria-expanded=true] { background:var(--btn); color:var(--text); }
-  .theme-trigger svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; }
-  .theme-menu { position:absolute; right:0; top:calc(100% + 4px); z-index:30; min-width:100%; max-width:calc(100vw - 40px); max-height:min(240px,40dvh); overflow:auto; padding:4px; background:var(--panel); border:1px solid var(--track); box-shadow:0 8px 24px rgba(0,0,0,.3); scrollbar-width:thin; scrollbar-color:var(--muted) var(--panel); }
+  .theme-setting svg { fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .theme-trigger svg { width:18px; height:18px; }
+  .theme-menu { position:absolute; right:0; top:calc(100% + 8px); z-index:30; width:min(320px,calc(100vw - 40px)); padding:16px; background:var(--panel); border:1px solid var(--track); box-shadow:0 4px 12px #0003; text-align:left; }
   .theme-menu[hidden] { display:none; }
-  .theme-menu button { display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%; border:0; padding:9px 10px; background:transparent; color:var(--text); font:inherit; text-align:left; cursor:pointer; }
-  .theme-menu button:hover,.theme-menu button:focus-visible { background:var(--btn-hover); }
-  .theme-menu button::after { content:''; width:7px; height:12px; border:solid var(--accent); border-width:0 2px 2px 0; transform:rotate(45deg); visibility:hidden; }
-  .theme-menu button[aria-checked=true]::after { visibility:visible; }
+  .theme-menu-label { display:block; margin-bottom:9px; color:var(--muted); font-size:.7rem; font-weight:650; text-transform:uppercase; }
+  .theme-segments { position:relative; display:grid; grid-template-columns:repeat(3,1fr); height:32px; padding:2px; border:1px solid var(--track); }
+  .theme-selection { position:absolute; inset:2px auto 2px 2px; width:calc((100% - 4px) / 3); background:var(--accent); transform:translateX(calc(var(--theme-index,1) * 100%)); transition:transform .25s ease-out; }
+  .theme-segments button { position:relative; display:flex; align-items:center; justify-content:center; flex-direction:row-reverse; gap:6px; min-width:0; padding:0 8px; border:0; background:transparent; color:var(--text); font:inherit; font-size:11px; cursor:pointer; }
+  .theme-segments button svg { width:15px; height:15px; flex:none; }
+  .theme-segments button:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+  .theme-segments [aria-pressed=true] { color:#0f172a; }
+  @media (prefers-reduced-motion:reduce) { .theme-selection { transition:none; } }
+  @media (pointer:coarse) {
+    .theme-segments { height:44px; padding:0; }
+    .theme-segments button { min-height:44px; margin-top:-1px; }
+    .theme-selection { inset:0 auto 0 0; width:calc(100% / 3); }
+  }
   :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .card {
     position:relative;
@@ -617,15 +622,19 @@ $htmlPage = @'
   <div class="page-loading" id="pageLoading"></div>
 
   <div class="card">
-    <div class="theme-setting"><span id="themeLabel" hidden>Theme</span>
+    <div class="theme-setting">
       <div class="theme-picker" id="themePicker">
-        <button type="button" id="theme" class="theme-trigger" aria-labelledby="themeLabel themeValue" aria-haspopup="menu" aria-expanded="false" aria-controls="themeMenu">
-          <span id="themeValue">Midnight</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        <button type="button" id="theme" class="theme-trigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="themeMenu" aria-label="Theme: Midnight">
+          <span id="themeValue" hidden>Midnight</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 0-4 1.5 1.5 0 0 1 0-3h2a6 6 0 0 0 6-6c0-3-4-5-9-5Z"/><circle cx="7.5" cy="10" r=".5"/><circle cx="10" cy="6.5" r=".5"/><circle cx="15" cy="7" r=".5"/></svg>
         </button>
-        <div id="themeMenu" class="theme-menu" role="menu" aria-labelledby="themeLabel" hidden>
-          <button type="button" role="menuitemradio" aria-checked="false" tabindex="-1" data-theme-preference="system">System</button>
-          <button type="button" role="menuitemradio" aria-checked="false" tabindex="-1" data-theme-preference="light">Light</button>
-          <button type="button" role="menuitemradio" aria-checked="true" tabindex="-1" data-theme-preference="midnight">Midnight</button>
+        <div id="themeMenu" class="theme-menu" role="dialog" aria-label="Appearance settings" hidden>
+          <span id="themeLabel" class="theme-menu-label">Theme</span>
+          <div id="themeSegments" class="theme-segments" role="group" aria-labelledby="themeLabel">
+            <span class="theme-selection" aria-hidden="true"></span>
+            <button type="button" aria-pressed="false" tabindex="-1" data-theme-preference="light"><span>Light</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button>
+            <button type="button" aria-pressed="true" tabindex="0" data-theme-preference="midnight"><span>Midnight</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button>
+            <button type="button" aria-pressed="false" tabindex="-1" data-theme-preference="system"><span>System</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="13" rx="1"/><path d="M8 21h8m-4-5v5"/></svg></button>
+          </div>
         </div>
       </div>
     <button type="button" class="reload-btn" id="reloadBtn" aria-label="Refresh" data-tip="Refresh">

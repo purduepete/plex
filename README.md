@@ -43,16 +43,19 @@ Stop-ScheduledTask -TaskPath \JimlerTech\ -TaskName SolutionDeploy-plex; Start-S
 
 ## Scripts
 
-The web card's custom Theme menu has System, Light and Midnight. Midnight is the
+The web card's palette icon opens a Theme popover with square Light, Midnight and
+System pills, matching Solution Directory. Midnight is the
 default; System follows the OS live. Preferences persist in browser localStorage
 under `plex-theme`, using `system`, `light` or `midnight`. Gold stays the accent
 in every theme. Roboto Flex loads from Google Fonts with a system fallback.
-The menu supports arrows, Home/End, Enter/Space, Escape, Tab and outside-click
-dismissal. Selection and Escape return focus to the trigger; no native dropdown
-is rendered.
+Choosing a theme keeps the popover open; only the palette icon (or Escape) closes
+it and returns focus to the icon. Arrows and Home/End move between pills; no
+native dropdown is rendered.
 
-Refresh and volume hints use one delegated, theme-aware tooltip. Hover or focus
-shows a hint; Escape, scroll and click dismiss it. Unsupported volume controls
+Refresh and volume hints use one delegated, theme-aware tooltip. The hidden
+`SHOW_TOOLTIPS` setting in `Start-PlexWebUI.ps1` is `false`, so hints stay closed
+and remain screen reader descriptions. When it is `true`, hover or focus shows a
+hint; Escape, scroll and click dismiss it. Unsupported volume controls
 have a focusable row explaining their disabled state.
 
 Run `npm test` for offline theme, script and tooltip regression tests. Tooltip

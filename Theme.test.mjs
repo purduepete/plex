@@ -155,6 +155,9 @@ test('pointer presses leave no outline and transport color clears after 3 second
         /button\.nav:not\(\.transport\):hover, button\.nav\.transport\.pressed \{ background:var\(--btn-hover\); \}/
     );
     assert.match(html, /btn\.classList\.remove\('pressed'\); \}, 3000\)/);
+    assert.match(html, /querySelectorAll\('button\.transport, button\.vol-btn'\)/);
+    assert.match(html, /\.vol-btn\.pressed \{ background:var\(--btn-hover\); \}/);
+    assert.doesNotMatch(html, /\.vol-btn:hover/);
 });
 
 function launch(stored, dark = false, blocked = false) {

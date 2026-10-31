@@ -565,7 +565,7 @@ $htmlPage = @'
      the mercy of font baseline metrics (visibly off-center on iPadOS Safari
      for characters like "+"/"-"), whereas an SVG centers exactly via flexbox. */
   .vol-btn svg { width:20px; height:20px; fill:currentColor; flex:none; }
-  .vol-btn:hover { background:var(--btn-hover); }
+  .vol-btn.pressed { background:var(--btn-hover); }
   .vol-btn:active { transform:scale(.92); }
   .vol-btn:disabled { cursor:not-allowed; opacity:.5; }
   /* Same invisible-hit-area trick as the progress track: the visible line
@@ -785,8 +785,8 @@ $htmlPage = @'
 // End shared tooltips.
   document.addEventListener('pointerdown', function () { document.documentElement.classList.add('pointer-input'); }, true);
   document.addEventListener('keydown', function () { document.documentElement.classList.remove('pointer-input'); }, true);
-  // Back, Play/Pause and Forward show their pressed color for 3 seconds.
-  Array.prototype.forEach.call(document.querySelectorAll('button.transport'), function (btn) {
+  // Back, Play/Pause, Forward and the volume buttons show their pressed color for 3 seconds.
+  Array.prototype.forEach.call(document.querySelectorAll('button.transport, button.vol-btn'), function (btn) {
     var pressedTimer;
     btn.addEventListener('click', function () {
       clearTimeout(pressedTimer);

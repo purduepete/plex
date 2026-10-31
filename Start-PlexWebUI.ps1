@@ -397,7 +397,7 @@ $htmlPage = @'
     justify-content:center; transition:background .15s, color .15s;
     touch-action:manipulation;
   }
-  .reload-btn:hover { background:var(--btn); color:var(--text); }
+  .reload-btn:hover { color:var(--text); }
   .reload-btn:active { transform:scale(.92); }
   .reload-btn svg { width:18px; height:18px; fill:currentColor; }
   .reload-btn.spinning svg { animation:reload-spin 1s linear infinite; }
@@ -1324,7 +1324,8 @@ $htmlPage = @'
     var btn = this;
     if (btn.classList.contains('spinning')) { return; }
     btn.classList.add('spinning');
-    loadPlayers().then(refresh).then(function () { btn.classList.remove('spinning'); });
+    function done() { btn.classList.remove('spinning'); }
+    loadPlayers().then(refresh).then(done, done);
   });
 
   var pageLoadingEl = document.getElementById('pageLoading');

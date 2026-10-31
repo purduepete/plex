@@ -130,6 +130,7 @@ test('theme and refresh share a compact, vertically centered header', () => {
     assert(header.includes('M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 0-4'));
     assert.match(html, /\.theme-setting \{[^}]*align-items:center; justify-content:space-between;/);
     assert.match(html, /\.theme-trigger \{[^}]*width:32px; height:32px;[^}]*background:transparent;/);
+    assert.match(html, /\.reload-btn:hover \{ color:var\(--text\); \}/);
     assert.match(html, /\.theme-trigger:hover \{ color:var\(--text\); \}/);
     assert.match(html, /\.theme-trigger\[aria-expanded=true\] \{ background:var\(--btn\);/);
     assert.match(html, /\.theme-selection \{[^}]*background:var\(--accent\);[^}]*transition:transform \.25s ease-out;/);

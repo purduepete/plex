@@ -1,5 +1,7 @@
 # plex
 
+First entry keeps the card, its header controls and playback content hidden until devices and status finish, then reveals them together over 600ms. PIN prompts and initial errors show immediately. Reduced motion disables the entrance, and later refreshes never replay it.
+
 PowerShell tools for the Plex Media Server on `jimbrownhome:32400`: a web UI for rating and
 skipping the current track, a command-line track controller, and a now-playing toast watcher.
 

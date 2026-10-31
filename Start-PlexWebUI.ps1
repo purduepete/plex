@@ -402,6 +402,8 @@ $htmlPage = @'
   .spinner-wrap { display:inline-flex; animation:fade-in .6s ease-out both; }
   .spinner { display:block; width:40px; height:40px; border:3px solid var(--track); border-top-color:var(--accent); border-radius:50%; animation:reload-spin 1s linear infinite; }
   .card.data-enter { animation:fade-in .6s ease-out both; }
+  body[data-first-load="loading"] .card { visibility:hidden; opacity:0; }
+  body[data-first-load="ready"] .card { animation:fade-in .6s ease-out both; }
   .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
   @keyframes fade-in {
     from { opacity:0; }
@@ -602,7 +604,7 @@ $htmlPage = @'
   @media(max-height:760px) { body { align-items:flex-start; } }
 </style>
 </head>
-<body>
+<body data-first-load="loading">
   <div class="lock-overlay" id="lockOverlay">
     <div class="lock-box">
       <div class="lock-title">Enter PIN</div>
@@ -1200,14 +1202,14 @@ $htmlPage = @'
           el.classList.toggle('selected', el.textContent === initial);
         });
       })
-      .catch(function (e) { setMessage('Could not load devices: ' + e, true); });
+      .catch(function (e) { setMessage('Could not load devices: ' + e, true); finishPageLoading(true); });
   }
 
   function refresh() {
     return fetch(apiUrl('/api/status'))
       .then(readApiResponse)
       .then(render)
-      .catch(function (e) { setMessage('Could not reach Plex: ' + e, true); });
+      .catch(function (e) { setMessage('Could not reach Plex: ' + e, true); finishPageLoading(true); });
   }
 
   function rate(value) {
@@ -1312,12 +1314,14 @@ $htmlPage = @'
   var pageRingTimer = setTimeout(function () {
     pageLoadingEl.innerHTML = '<div class="spinner-wrap" role="status"><span class="spinner" aria-hidden="true"></span><span class="sr-only">Loading now playing</span></div>';
   }, 250);
-  function finishPageLoading() {
+  function finishPageLoading(failed) {
+    if (document.body.dataset.firstLoad !== 'loading') { return; }
     clearTimeout(pageRingTimer);
     pageLoadingEl.remove();
-    document.querySelector('.card').classList.add('data-enter');
+    document.body.dataset.firstLoad = failed ? 'error' : 'ready';
   }
 
+  if (!lockOverlayEl.classList.contains('hidden')) { finishPageLoading(true); }
   loadPlayers().then(refresh).then(finishPageLoading);
   setInterval(refresh, 8000);
 })();

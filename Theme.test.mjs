@@ -8,6 +8,29 @@ const source = readFileSync(new URL('./Start-PlexWebUI.ps1', import.meta.url), '
 const html = source.match(/\$htmlPage = @'\r?\n([\s\S]*?)\r?\n'@/)[1];
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 
+test('first-load gate reveals once, with immediate failures and no refresh replay', () => {
+    assert.match(html, /<body data-first-load="loading">/);
+    assert.match(html, /body\[data-first-load="loading"\] \.card \{ visibility:hidden; opacity:0; \}/);
+    const finish = html.match(/ {2}function finishPageLoading\(failed\) \{[\s\S]*?\n {2}\}/)[0];
+    for (const failed of [false, true]) {
+        let removed = 0;
+        const body = { dataset: { firstLoad: 'loading' } };
+        const context = vm.createContext({
+            document: { body },
+            clearTimeout() {},
+            pageRingTimer: 1,
+            pageLoadingEl: {
+                remove() {
+                    removed++;
+                },
+            },
+        });
+        vm.runInContext(`${finish}\nfinishPageLoading(${failed});finishPageLoading(false);`, context);
+        assert.equal(body.dataset.firstLoad, failed ? 'error' : 'ready');
+        assert.equal(removed, 1);
+    }
+});
+
 test('API errors reject before control handlers render success', async () => {
     const playback = html.match(/<script>([\s\S]*?)<\/script>/g).at(-1);
     const helper = playback.match(/ {2}function readApiResponse\(response\) \{[\s\S]*?\n {2}\}/)[0];

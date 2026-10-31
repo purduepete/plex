@@ -399,9 +399,10 @@ $htmlPage = @'
     justify-content:center; transition:background .15s, color .15s;
     touch-action:manipulation;
   }
-  .reload-btn:hover { color:var(--text); }
+  @media (hover:hover) { .reload-btn:not(.spinning):hover { color:var(--text); } }
   .reload-btn:active { transform:scale(.92); }
-  .reload-btn svg { width:18px; height:18px; fill:currentColor; }
+  /* A permanent layer keeps the icon's weight the same while it spins. */
+  .reload-btn svg { width:18px; height:18px; fill:currentColor; will-change:transform; }
   .reload-btn.spinning svg { animation:reload-spin 1s linear infinite; }
   @keyframes reload-spin {
     from { transform:rotate(0deg); }
@@ -785,13 +786,13 @@ $htmlPage = @'
 // End shared tooltips.
   document.addEventListener('pointerdown', function () { document.documentElement.classList.add('pointer-input'); }, true);
   document.addEventListener('keydown', function () { document.documentElement.classList.remove('pointer-input'); }, true);
-  // Back, Play/Pause, Forward and the volume buttons show their pressed color for 3 seconds.
+  // Back, Play/Pause, Forward and the volume buttons show their pressed color for 2 seconds.
   Array.prototype.forEach.call(document.querySelectorAll('button.transport, button.vol-btn'), function (btn) {
     var pressedTimer;
     btn.addEventListener('click', function () {
       clearTimeout(pressedTimer);
       btn.classList.add('pressed');
-      pressedTimer = setTimeout(function () { btn.classList.remove('pressed'); }, 3000);
+      pressedTimer = setTimeout(function () { btn.classList.remove('pressed'); }, 2000);
     });
   });
   var starEls = Array.prototype.slice.call(document.querySelectorAll('#stars .star'));
@@ -856,7 +857,8 @@ $htmlPage = @'
   starEls.forEach(function (el) {
     var idx = parseInt(el.getAttribute('data-index'), 10);
     el.addEventListener('mouseenter', function () { paintStars(idx); });
-    el.addEventListener('click', function () { rate(idx); });
+    // Tapping the star that matches the current rating clears it.
+    el.addEventListener('click', function () { rate(idx === Math.round(currentRating) ? 0 : idx); });
   });
   starsContainer.addEventListener('mouseleave', function () { paintStars(currentRating); });
 
@@ -1256,7 +1258,7 @@ $htmlPage = @'
       .then(readApiResponse)
       .then(function (data) {
         render(data);
-        setMessage(value < 3 ? ('Rated ' + value + ' ★ - skipped forward') : ('Rated ' + value + ' ★'));
+        setMessage(value === 0 ? 'Rating cleared' : value < 3 ? ('Rated ' + value + ' ★ - skipped forward') : ('Rated ' + value + ' ★'));
       })
       .catch(function (e) { setMessage('Rate failed: ' + e, true); });
   }
@@ -1491,7 +1493,7 @@ try {
                         # needs this cache to report the correct live value.
                         $script:RatingOverrides[[string]$track.RatingKey] = $stars
 
-                        if ($stars -lt 3) {
+                        if ($stars -gt 0 -and $stars -lt 3) {
                             # Track is about to change - skip, give Plex a moment to advance.
                             $accepted = Invoke-PlexSkip -Server $PlexServer -Token $Token -MachineIdentifier $track.MachineIdentifier -Direction 'Next' -MediaType $track.MediaType
                             Confirm-PlexControl -Accepted $accepted -Action 'skip after rating (rating saved)'

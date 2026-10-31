@@ -130,7 +130,8 @@ test('theme and refresh share a compact, vertically centered header', () => {
     assert(header.includes('M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 0-4'));
     assert.match(html, /\.theme-setting \{[^}]*align-items:center; justify-content:space-between;/);
     assert.match(html, /\.theme-trigger \{[^}]*width:32px; height:32px;[^}]*background:transparent;/);
-    assert.match(html, /\.reload-btn:hover \{ color:var\(--text\); \}/);
+    assert.match(html, /@media \(hover:hover\) \{ \.reload-btn:not\(\.spinning\):hover \{ color:var\(--text\); \} \}/);
+    assert.match(html, /\.reload-btn svg \{[^}]*will-change:transform;/);
     assert.match(html, /\.theme-trigger:hover \{ color:var\(--text\); \}/);
     assert.match(html, /\.theme-trigger\[aria-expanded=true\] \{ background:var\(--btn\);/);
     assert.match(html, /\.theme-selection \{[^}]*background:var\(--accent\);[^}]*transition:transform \.25s ease-out;/);
@@ -143,7 +144,7 @@ test('theme and refresh share a compact, vertically centered header', () => {
     assert.doesNotMatch(html, /\.reload-btn \{[^}]*position:absolute/);
 });
 
-test('pointer presses leave no outline and transport color clears after 3 seconds', () => {
+test('pointer presses leave no outline and transport color clears after 2 seconds', () => {
     assert.match(html, /html\.pointer-input :focus-visible \{ outline:none; \}/);
     assert.match(html, /classList\.add\('pointer-input'\)/);
     assert.match(html, /classList\.remove\('pointer-input'\)/);
@@ -154,7 +155,12 @@ test('pointer presses leave no outline and transport color clears after 3 second
         html,
         /button\.nav:not\(\.transport\):hover, button\.nav\.transport\.pressed \{ background:var\(--btn-hover\); \}/
     );
-    assert.match(html, /btn\.classList\.remove\('pressed'\); \}, 3000\)/);
+    assert.match(html, /btn\.classList\.remove\('pressed'\); \}, 2000\)/);
+    assert.match(html, /rate\(idx === Math\.round\(currentRating\) \? 0 : idx\)/);
+    assert.match(html, /value === 0 \? 'Rating cleared'/);
+    assert.match(source, /if \(\$stars -gt 0 -and \$stars -lt 3\)/);
+    const lib = readFileSync(new URL('./PlexTrackLib.ps1', import.meta.url), 'utf8');
+    assert.match(lib, /\$plexRating = if \(\$Stars -le 0\) \{ -1 \} else \{ \$Stars \* 2 \}/);
     assert.match(html, /querySelectorAll\('button\.transport, button\.vol-btn'\)/);
     assert.match(html, /\.vol-btn\.pressed \{ background:var\(--btn-hover\); \}/);
     assert.doesNotMatch(html, /\.vol-btn:hover/);

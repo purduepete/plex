@@ -86,7 +86,8 @@ function Set-PlexRating {
         [double]$Stars
     )
 
-    $plexRating = $Stars * 2   # Plex API uses 0-10 scale internally
+    # Plex uses a 0-10 scale; -1 clears the rating.
+    $plexRating = if ($Stars -le 0) { -1 } else { $Stars * 2 }
     $uri = "http://${Server}/:/rate?key=${RatingKey}&identifier=com.plexapp.plugins.library&rating=${plexRating}&X-Plex-Token=${Token}"
     Invoke-RestMethod -Uri $uri -Method Put | Out-Null
 }

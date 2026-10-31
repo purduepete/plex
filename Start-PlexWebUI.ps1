@@ -399,7 +399,6 @@ $htmlPage = @'
     justify-content:center; transition:background .15s, color .15s;
     touch-action:manipulation;
   }
-  @media (hover:hover) { .reload-btn:not(.spinning):hover { color:var(--text); } }
   .reload-btn:active { transform:scale(.92); }
   /* A permanent layer keeps the icon's weight the same while it spins. */
   .reload-btn svg { width:18px; height:18px; fill:currentColor; will-change:transform; }
